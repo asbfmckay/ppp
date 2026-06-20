@@ -41,7 +41,7 @@
   nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);
     backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:50;
     padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
-  nav button{flex:1;background:none;border:none;padding:8px 2px 6px;color:var(--muted);
+  nav button{position:relative;flex:1;background:none;border:none;padding:8px 2px 6px;color:var(--muted);
     font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:10px}
   nav button .ic{font-size:18px;line-height:1}
   nav button.on{color:var(--plum)}
@@ -208,6 +208,16 @@
   .syncbtn:disabled{opacity:.5}
   .lastsync{font-size:11px;color:var(--muted)}
   .conn .rowck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--plum-soft);font-weight:600;margin:2px 0 12px}
+  .conn .txt{margin-bottom:8px}
+
+  .nudge{display:flex;align-items:center;gap:10px;background:#FBEBE6;border:1px solid #F0C4B5;color:#9a3f24;
+    padding:10px 12px;font-size:12.5px;border-radius:12px;margin-bottom:14px;line-height:1.4}
+  .nudge span{flex:1}
+  .nudge button{border:none;background:#9a3f24;color:#fff;border-radius:8px;font-size:12px;font-weight:600;padding:7px 11px;white-space:nowrap;cursor:pointer}
+  .nudge button.x{background:none;color:#9a3f24;font-size:15px;padding:2px 6px;font-weight:700}
+  .navdot{position:absolute;top:5px;right:calc(50% - 16px);width:7px;height:7px;border-radius:50%;background:var(--bad)}
+  .backupState{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px}
+  .backupState.warn{color:var(--bad)}
   .conn .rowck input{accent-color:var(--amber);width:16px;height:16px}
 
   /* guide */
@@ -230,6 +240,34 @@
   .codeblock{position:relative;background:var(--plum-deep);color:#EDE6F2;border-radius:10px;padding:12px 14px;padding-top:30px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:8px 0}
   .codeblock .cp{position:absolute;top:7px;right:7px;background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:6px;font-size:10.5px;font-weight:600;padding:4px 9px;cursor:pointer}
   .codeblock .cp:hover{background:rgba(255,255,255,.3)}
+
+  .habit input.psn{width:84px;font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:4px 9px;background:#fff;color:var(--plum-soft)}
+  .psnbadge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.03em;
+    color:var(--plum);background:var(--amber-soft);padding:3px 8px;border-radius:20px;margin-left:2px}
+  .umrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .umrow:last-child{border-bottom:none}
+  .umrow .t{flex:1;font-size:13px;font-weight:600;color:var(--ink)}
+  .umrow .t small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+  .umrow .cnt{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .umrow .mk{border:1px solid var(--plum);background:var(--plum);color:#fff;border-radius:8px;font-size:11.5px;font-weight:600;padding:6px 11px;white-space:nowrap}
+
+  .psection{margin-bottom:20px}
+  .phead{display:flex;align-items:center;gap:9px;margin:0 0 10px;padding:0 2px}
+  .phead .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .phead h3{margin:0;font-size:18px;font-weight:600}
+  .phead .ct{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+  .pempty{font-size:12px;color:var(--muted);padding:4px 2px 8px;margin:0}
+  .habit{padding:0;overflow:hidden}
+  .hbar{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;padding:13px 14px;cursor:pointer}
+  .hbar .hname{font-weight:600;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hbar .skin{font-size:12px;flex:none;opacity:.85}
+  .hbar .hstreak{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--plum);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums}
+  .hbar .chev{color:var(--muted);transition:transform .2s;flex:none}
+  .habit.open .hbar .chev{transform:rotate(90deg)}
+  .hbar .hname.empty{color:var(--muted);font-weight:500;font-style:italic}
+  .hbody{padding:0 14px 14px;border-top:1px solid var(--line)}
+  .hbody .hh{padding-top:12px}
+  .habit select.psn{font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:4px 9px;background:#fff;color:var(--plum-soft)}
 </style>
 </head>
 <body>
@@ -240,6 +278,11 @@
 </header>
 
 <main>
+  <div id="nudge" class="nudge" style="display:none">
+    <span>⚠ It's been a while since your last backup — your data lives only in this browser.</span>
+    <button onclick="exportData()">Back up now</button>
+    <button class="x" onclick="dismissNudge()" aria-label="Dismiss">✕</button>
+  </div>
   <!-- PLAN -->
   <section class="view on" data-v="plan">
     <p class="eyebrow">Step 1 · Foundation</p>
@@ -280,9 +323,10 @@
     <h2>Habits</h2>
     <p class="lede">The consistent actions that close the gap. Keep the chain unbroken — tap a day to mark it done.</p>
     <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync from Skylight</button><span class="lastsync"></span></div>
+    <datalist id="peopleList"></datalist>
+    <div id="unmatchedWrap"></div>
     <div id="habitsWrap"></div>
-    <button class="addbtn" onclick="addHabit()">+ Add a habit</button>
-    <p class="hint"><b>Tip:</b> put the exact <b>Skylight routine name</b> on a habit and it becomes a read-only mirror — completions flow in from the frame when you sync. Leave it blank to tick the habit manually here. Link a habit to a goal to tie the daily action to the destination.</p>
+    <p class="hint"><b>Tip:</b> put the exact <b>Skylight routine name</b> on a habit and it becomes a read-only mirror — completions flow in from the frame when you sync. Set the <b>person</b> to file it under that family member. Leave both blank to tick manually.</p>
     <p class="hint" id="showArch" style="text-align:center;display:none"><a href="#" onclick="toggleArch(event)" style="color:var(--plum-soft);font-weight:600;text-decoration:none">Show archived ▾</a></p>
   </section>
 
@@ -373,49 +417,7 @@
       </div>
 
       <div class="item">
-        <button class="hd" onclick="accToggle(this)"><span class="n">4</span>Connect Skylight (full setup)<span class="chev">›</span></button>
-        <div class="bd">
-          <p>Optional. Lets the family keep ticking routines on the Skylight frame while this app records them as habit chains — no double entry. It runs through your own free Cloudflare Worker, so your Skylight login never touches this app.</p>
-          <p><b>You'll need:</b> a Cloudflare account (free), the <span class="code">skylight-ppp-worker.js</span> file, and your Skylight login.</p>
-
-          <h5>Step 1 · Find your frame ID</h5>
-          <p>Log in at <span class="code">ourskylight.com</span> and open your calendar. The number in the address <span class="code">ourskylight.com/calendar/NUMBER</span> is your frame ID.</p>
-
-          <h5>Step 2 · Capture your access token</h5>
-          <p>On a computer at <span class="code">ourskylight.com</span>, press <b>F12</b> (DevTools) → <b>Network</b> tab → reload the page. Click any request to <span class="code">app.ourskylight.com/api/…</span> → <b>Headers</b> → copy the full value of the <span class="code">Authorization</span> header. Treat it like a password.</p>
-
-          <h5>Step 3 · Create the Worker</h5>
-          <p>Cloudflare dashboard → <b>Workers &amp; Pages</b> → <b>Create</b> → <b>Create Worker</b>. Replace the starter code with the contents of <span class="code">skylight-ppp-worker.js</span>, then <b>Deploy</b>.</p>
-
-          <h5>Step 4 · Add your secrets</h5>
-          <p>Worker → <b>Settings → Variables and Secrets</b> → add three <b>secrets</b>:</p>
-          <ul>
-            <li><span class="code">SKYLIGHT_TOKEN</span> — the Authorization value from step 2</li>
-            <li><span class="code">SKYLIGHT_FRAME_ID</span> — the number from step 1</li>
-            <li><span class="code">APP_KEY</span> — any random string you invent (you'll paste it into the app too)</li>
-          </ul>
-          <p>Optional plain variable <span class="code">ALLOW_ORIGIN</span> = your app's web address. Or, from a terminal:</p>
-          <div class="codeblock"><button class="cp" onclick="copyCode(this)">Copy</button>wrangler secret put SKYLIGHT_TOKEN
-wrangler secret put SKYLIGHT_FRAME_ID
-wrangler secret put APP_KEY</div>
-
-          <h5>Step 5 · Connect the app</h5>
-          <p>Copy your Worker URL (ends in <span class="code">.workers.dev</span>). In <b>Connections</b> below, paste the URL and the same <span class="code">APP_KEY</span>, tick <b>Routines only</b>, and tap <b>Sync now</b>.</p>
-
-          <h5>Step 6 · Map your habits</h5>
-          <p>On each habit, set <b>Skylight routine</b> to the routine's exact name as it appears on the frame. The habit locks to read-only and fills from sync.</p>
-
-          <h5>Verify (first time)</h5>
-          <p>Confirm the data lines up by calling the debug endpoint with your key — you should see chores with <span class="code">summary</span>, <span class="code">status</span> and <span class="code">completed_on</span>:</p>
-          <div class="codeblock"><button class="cp" onclick="copyCode(this)">Copy</button>curl -H "Authorization: Bearer YOUR_APP_KEY" "https://YOUR-WORKER.workers.dev/raw?since=2026-06-01"</div>
-
-          <div class="callout"><b>Security:</b> your Skylight credentials live only in the Worker's secrets — never in this app or on your phone. For an extra layer, put the Worker route behind Cloudflare Access.</div>
-          <div class="callout warn"><b>Heads up:</b> the Skylight API is unofficial and can change, and the captured token can expire. If a sync returns an auth error, repeat step 2 and update <span class="code">SKYLIGHT_TOKEN</span>. Habit names must match the routine's wording (case and spacing are ignored).</div>
-        </div>
-      </div>
-
-      <div class="item">
-        <button class="hd" onclick="accToggle(this)"><span class="n">5</span>Recommendations &amp; tips<span class="chev">›</span></button>
+        <button class="hd" onclick="accToggle(this)"><span class="n">4</span>Recommendations &amp; tips<span class="chev">›</span></button>
         <div class="bd">
           <h5>Meetings</h5>
           <p>Keep the cadence (monthly/quarterly), report progress honestly, and accept blunt feedback — accountability is the bridge between intention and action.</p>
@@ -429,23 +431,33 @@ wrangler secret put APP_KEY</div>
           <p>Share finances monthly and give every member a savings plan. Each person can keep their own exported file. Export a backup regularly — data lives only in this browser.</p>
         </div>
       </div>
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">⛓</span>Connections · Skylight<span class="chev">›</span></button>
+        <div class="bd conn">
+          <p class="hint" style="margin:0 0 12px">Pull routine completions from your Skylight frame via your Cloudflare Worker. Habits with a Skylight routine name are mirrored from the frame, read-only here.</p>
+          <input class="txt" id="connUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.conn.url=this.value;save()">
+          <input class="txt" id="connKey" placeholder="App key (matches Worker secret)" oninput="S.conn.key=this.value;save()">
+          <label class="rowck"><input type="checkbox" id="connRO" onchange="S.conn.routinesOnly=this.checked;save()"> Routines only (ignore one-off chores)</label>
+          <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync now</button><span class="lastsync"></span></div>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">💾</span>Back up &amp; share<span class="chev">›</span></button>
+        <div class="bd">
+          <p class="hint" style="margin:0 0 10px">Everything stays on this device. Export a file to back up, move devices, or share with your support crew.</p>
+          <p id="backupState" class="backupState">Never backed up on this device</p>
+          <div class="toolbar">
+            <button onclick="exportData()">⬇ Export backup</button>
+            <button onclick="document.getElementById('imp').click()">⬆ Import backup</button></div>
+          <input type="file" id="imp" accept="application/json" hidden onchange="importData(event)">
+          <div class="toolbar" style="margin-top:8px"><button onclick="window.print()">🖨 Print / save PDF</button>
+            <button class="warn" onclick="resetAll()">Clear everything</button></div>
+          <p class="hint" style="margin-top:10px">Tip: export after each review and keep the file in Drive/iCloud. On iPhone, <b>Add to Home Screen</b> helps the data persist. Clearing browser data for this site, or not opening it for a while on iOS Safari, can wipe local data — your exported files are the safe copy.</p>
+        </div>
+      </div>
     </div>
 
-    <div class="card conn"><h3 style="margin:0 0 8px;font-size:15px">Connections · Skylight</h3>
-      <p class="hint" style="margin:0 0 12px">Pull routine completions from your Skylight frame via your Cloudflare Worker (see guide step 4). Habits with a Skylight routine name are mirrored from the frame, read-only here.</p>
-      <input class="txt" id="connUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.conn.url=this.value;save()">
-      <input class="txt" id="connKey" placeholder="App key (matches Worker secret)" oninput="S.conn.key=this.value;save()">
-      <label class="rowck"><input type="checkbox" id="connRO" onchange="S.conn.routinesOnly=this.checked;save()"> Routines only (ignore one-off chores)</label>
-      <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync now</button><span class="lastsync"></span></div></div>
-
-    <div class="card"><h3 style="margin:0 0 8px;font-size:15px">Back up &amp; share</h3>
-      <p class="hint" style="margin:0 0 10px">Everything stays on this device. Export a file to back up, move devices, or share with your support crew.</p>
-      <div class="toolbar">
-        <button onclick="exportData()">⬇ Export backup</button>
-        <button onclick="document.getElementById('imp').click()">⬆ Import backup</button></div>
-      <input type="file" id="imp" accept="application/json" hidden onchange="importData(event)">
-      <div class="toolbar" style="margin-top:8px"><button onclick="window.print()">🖨 Print / save PDF</button>
-        <button class="warn" onclick="resetAll()">Clear everything</button></div></div>
     <p class="savetag" id="saveState">Saved automatically</p>
   </section>
 </main>
@@ -456,7 +468,7 @@ wrangler secret put APP_KEY</div>
   <button data-tab="goals" onclick="go('goals')"><span class="ic">◈</span>Goals</button>
   <button data-tab="habits" onclick="go('habits')"><span class="ic">✓</span>Habits</button>
   <button data-tab="money" onclick="go('money')"><span class="ic">$</span>Money</button>
-  <button data-tab="more" onclick="go('more')"><span class="ic">⋯</span>More</button>
+  <button data-tab="more" onclick="go('more')"><span class="navdot" id="moreDot" style="display:none"></span><span class="ic">⋯</span>More</button>
 </nav>
 <div class="toast" id="toast"></div>
 
@@ -470,29 +482,53 @@ const PILLARS=[
 ];
 const TF=['Quarterly','Annual','3-Year'];
 const CAD=[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']];
-const KEY='pppHousehold_v1';
+const HOUSEHOLD=['Andrew','Bronnia','Gordon','Albert'];
+const PERSON_COLORS={Andrew:'#5A3E7A',Bronnia:'#C2607A',Gordon:'#3F8E62',Albert:'#E29A2C'};
+const openHabits=new Set();
+const genId=()=>'h'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const KEYS=['pppHousehold_v1'];   // newest first — prepend a new key on structural changes
+const KEY=KEYS[0];
+const APP_VERSION=2;
+const BACKUP_WARN_DAYS=30;
+let reminderDismissed=false;
 const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
+const norm=s=>(s||'').trim().toLowerCase();
+let lastUnmatched=[],lastEvents=null,lastSince='';
 const todayISO=d=>{const x=d||new Date();return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)};
 let showArchived=false;
 
 let S=load();
 function blank(){
   const g={},r={};PILLARS.forEach(p=>{g[p.k]=[];r[p.k]=''});
-  return {profile:'',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
+  return {version:APP_VERSION,profile:'',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
     reset:r,goals:g,habits:[],money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[]},
-    conn:{url:'',key:'',routinesOnly:true,lastSync:''}};
+    conn:{url:'',key:'',routinesOnly:true,lastSync:''},meta:{lastBackup:''}};
 }
 function normalise(s){
   s=Object.assign(blank(),s||{});
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
     g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;});});
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
-    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';});
+    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=h.person||'';h.id=h.id||genId();});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
+  s.meta=Object.assign({lastBackup:''},s.meta||{});
+  s.version=APP_VERSION;
   return s;
 }
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw)return normalise(JSON.parse(raw));}catch(e){}
+  for(const k of KEYS){
+    let raw=null;try{raw=localStorage.getItem(k);}catch(e){}
+    if(!raw)continue;
+    try{
+      const s=normalise(JSON.parse(raw));
+      // migrated from an older key → write forward to the current key, keep the old as a fallback copy
+      if(k!==KEYS[0]){try{localStorage.setItem(KEYS[0],JSON.stringify(s));}catch(e){}}
+      return s;
+    }catch(e){
+      // unreadable/corrupt: stash a copy rather than silently destroying it
+      try{localStorage.setItem('pppHousehold_corrupt_'+Date.now(),raw);}catch(_){}
+    }
+  }
   return blank();
 }
 let saveTimer;
@@ -608,49 +644,81 @@ function rate(h){const n=h.cadence==='daily'?30:h.cadence==='weekly'?12:6;let c=
   for(let i=0;i<n;i++){if(h.log[pKey(h.cadence,shift(now,h.cadence,i))])c++;}return Math.round(c/n*100);}
 function toggle(h,d){const k=pKey(h.cadence,d);if(h.log[k])delete h.log[k];else h.log[k]=true;save();renderHabits();}
 
-function addHabit(){S.habits.push({name:'',link:'',cadence:'daily',target:0,sky:'',archived:false,log:{}});save();renderHabits();}
+function addHabit(person){const id=genId();S.habits.push({id,name:'',link:'',cadence:'daily',target:0,sky:'',person:person||'',archived:false,log:{}});openHabits.add(id);save();renderHabits();}
 function toggleArch(e){e.preventDefault();showArchived=!showArchived;renderHabits();}
 function renderHabits(){
-  const w=document.getElementById('habitsWrap');w.innerHTML='';
-  const active=S.habits.filter(h=>!h.archived||showArchived);
-  if(!active.length)w.innerHTML='<p class="hint" style="text-align:center;padding:8px 0">No habits yet — add one below.</p>';
+  const wrap=document.getElementById('habitsWrap');wrap.innerHTML='';
+  const groups=HOUSEHOLD.map(n=>({name:n,list:[]}));
+  const other={name:'Unassigned',list:[]};
   S.habits.forEach((h,idx)=>{
     if(h.archived&&!showArchived)return;
-    w.appendChild(habitEl(h,idx));
+    const g=groups.find(g=>norm(g.name)===norm(h.person));
+    (g||other).list.push({h,idx});
   });
+  groups.forEach(g=>wrap.appendChild(personSection(g.name,g.list,g.name)));
+  if(other.list.length)wrap.appendChild(personSection(other.name,other.list,''));
   const anyArch=S.habits.some(h=>h.archived);
   const sa=document.getElementById('showArch');sa.style.display=anyArch?'block':'none';
   sa.querySelector('a').textContent=showArchived?'Hide archived ▴':'Show archived ▾';
+  renderUnmatched();
+}
+function personSection(name,list,addPerson){
+  const sec=document.createElement('div');sec.className='psection';
+  const colour=PERSON_COLORS[name]||'#8A8295';
+  const head=document.createElement('div');head.className='phead';
+  head.innerHTML=`<span class="dot" style="background:${colour}"></span><h3>${name}</h3><span class="ct">${list.length||''}</span>`;
+  sec.appendChild(head);
+  if(!list.length){const e=document.createElement('p');e.className='pempty';e.textContent='No habits yet.';sec.appendChild(e);}
+  list.forEach(({h,idx})=>sec.appendChild(habitEl(h,idx)));
+  const add=document.createElement('button');add.className='addbtn';add.textContent='+ Add habit';
+  add.onclick=()=>addHabit(addPerson);sec.appendChild(add);
+  return sec;
 }
 function habitEl(h,idx){
   const ro=!!(h.sky&&h.sky.trim());
-  const el=document.createElement('div');el.className='habit'+(h.archived?' arch':'');
+  const open=openHabits.has(h.id);
+  const st=streak(h);
+  const el=document.createElement('div');el.className='habit'+(h.archived?' arch':'')+(open?' open':'');
+  // ---- collapsed header (always shown) ----
+  const head=document.createElement('button');head.className='hbar';
+  head.innerHTML=`<span class="hname${h.name?'':' empty'}">${h.name||'Untitled habit'}</span>
+    ${ro?'<span class="skin">⛓</span>':''}<span class="hstreak">🔗 ${st}</span><span class="chev">›</span>`;
+  head.onclick=()=>{if(openHabits.has(h.id))openHabits.delete(h.id);else openHabits.add(h.id);renderHabits();};
+  el.appendChild(head);
+  if(!open)return el;
+  // ---- expanded body ----
   const link='<option value="">— link goal</option>'+PILLARS.map(p=>`<option value="${p.k}" ${h.link===p.k?'selected':''}>${p.n}</option>`).join('');
   const cad=CAD.map(c=>`<option value="${c[0]}" ${h.cadence===c[0]?'selected':''}>${c[1]}</option>`).join('');
+  const inList=HOUSEHOLD.some(p=>norm(p)===norm(h.person));
+  const psnOpts='<option value="">— person</option>'+HOUSEHOLD.map(p=>`<option ${norm(h.person)===norm(p)?'selected':''}>${p}</option>`).join('')
+    +(h.person&&!inList?`<option selected>${h.person}</option>`:'');
   const unit=h.cadence==='daily'?'days':h.cadence==='weekly'?'weeks':'months';
-  const st=streak(h);
-  el.innerHTML=`<div class="hh"><input class="nm" placeholder="Habit name…"><button class="del">×</button></div>
+  const body=document.createElement('div');body.className='hbody';
+  body.innerHTML=`<div class="hh"><input class="nm" placeholder="Habit name…"><button class="del">×</button></div>
     <div class="hero"><span class="em">🔗</span><span class="big">${st||'—'}</span><span class="lbl">${unit} unbroken</span>
       ${ro?'<span class="skybadge">⛓ via Skylight</span>':''}</div>
     <div class="ctl"><select class="cad">${cad}</select><select class="lk">${link}</select>
+      <select class="psn">${psnOpts}</select>
       ${h.cadence==='daily'?'<span class="tgtlbl">target</span><input class="tgt" type="number" min="0" placeholder="–"><span class="tgtlbl">/ wk</span>':''}</div>
     <div class="track"></div>
     <div class="chips"></div>
     <div class="sky"><label>Skylight routine</label><input placeholder="(exact frame name — locks this habit to sync)"></div>
     <div class="miniact"><button class="arch">${h.archived?'Unarchive':'Archive'}</button></div>`;
-  const nm=el.querySelector('.nm');nm.value=h.name;nm.addEventListener('input',()=>{h.name=nm.value;save();});
-  el.querySelector('.cad').addEventListener('change',e=>{h.cadence=e.target.value;save();renderHabits();});
-  el.querySelector('.lk').addEventListener('change',e=>{h.link=e.target.value;save();});
-  const tgtEl=el.querySelector('.tgt');
+  el.appendChild(body);
+  const nm=body.querySelector('.nm');nm.value=h.name;nm.addEventListener('input',()=>{h.name=nm.value;head.querySelector('.hname').textContent=nm.value||'Untitled habit';head.querySelector('.hname').classList.toggle('empty',!nm.value);save();});
+  body.querySelector('.cad').addEventListener('change',e=>{h.cadence=e.target.value;save();renderHabits();});
+  body.querySelector('.lk').addEventListener('change',e=>{h.link=e.target.value;save();});
+  body.querySelector('.psn').addEventListener('change',e=>{h.person=e.target.value;save();renderHabits();});
+  const tgtEl=body.querySelector('.tgt');
   if(tgtEl){tgtEl.value=h.target||'';tgtEl.addEventListener('input',()=>{h.target=+tgtEl.value||0;save();renderHabits();});}
-  const sky=el.querySelector('.sky input');sky.value=h.sky;sky.addEventListener('input',()=>{h.sky=sky.value;save();});
+  const sky=body.querySelector('.sky input');sky.value=h.sky;sky.addEventListener('input',()=>{h.sky=sky.value;save();});
   sky.addEventListener('change',()=>renderHabits());
-  el.querySelector('.del').onclick=()=>{S.habits.splice(idx,1);save();renderHabits();};
-  el.querySelector('.arch').onclick=()=>{h.archived=!h.archived;save();renderHabits();};
-  const tr=el.querySelector('.track');
+  body.querySelector('.del').onclick=()=>{S.habits.splice(idx,1);save();renderHabits();};
+  body.querySelector('.arch').onclick=()=>{h.archived=!h.archived;save();renderHabits();};
+  const tr=body.querySelector('.track');
   if(h.cadence==='daily')tr.appendChild(dailyChain(h,ro));else tr.appendChild(periodRow(h,ro));
   const wkDone=weekCount(h);
-  el.querySelector('.chips').innerHTML=`<span class="chip">Best <b>${bestStreak(h)}</b></span>
+  body.querySelector('.chips').innerHTML=`<span class="chip">Best <b>${bestStreak(h)}</b></span>
     <span class="chip">${h.cadence==='daily'?'30-day':h.cadence==='weekly'?'12-wk':'6-mo'} <b>${rate(h)}%</b></span>
     ${h.cadence==='daily'&&h.target?`<span class="chip">This wk <b>${wkDone}/${h.target}</b></span>`:''}`;
   return el;
@@ -693,21 +761,51 @@ async function syncSkylight(){
     const res=await fetch(u,{headers:c.key?{'Authorization':'Bearer '+c.key}:{}});
     if(!res.ok)throw new Error('HTTP '+res.status);
     const j=await res.json();
-    const r=applySkylight(j.events||[],since);
+    lastEvents=j.events||[];lastSince=since;
+    const r=applySkylight(lastEvents,since);lastUnmatched=r.unmatched;
     c.lastSync=new Date().toISOString();save();renderHabits();renderConn();
-    toast(r.matched+' completions synced · '+r.unmatched+' unmatched');
+    toast(r.matched+' synced · '+r.unmatched.length+' routine'+(r.unmatched.length===1?'':'s')+' unmatched');
   }catch(e){toast('Sync failed: '+e.message);}
   finally{document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=false);}
 }
 function applySkylight(events,since){
-  const map={};S.habits.forEach(h=>{if(h.sky&&h.sky.trim())map[h.sky.trim().toLowerCase()]=h;});
   const today=todayISO();
-  Object.values(map).forEach(h=>{Object.keys(h.log).forEach(k=>{if(k.length===10&&k>=since&&k<=today)delete h.log[k];});});
-  let matched=0,unmatched=0;
+  const sky=S.habits.filter(h=>h.sky&&h.sky.trim());
+  sky.forEach(h=>{Object.keys(h.log).forEach(k=>{if(k.length===10&&k>=since&&k<=today)delete h.log[k];});});
+  let matched=0;const um={};
   events.forEach(ev=>{
-    const h=map[(ev.name||'').trim().toLowerCase()];const date=(ev.date||'').slice(0,10);
-    if(h&&date){h.log[date]=true;matched++;}else unmatched++;});
-  return {matched,unmatched};
+    const name=(ev.name||'').trim(),person=(ev.person||'').trim(),date=(ev.date||'').slice(0,10);
+    if(!name||!date)return;
+    const cands=sky.filter(h=>norm(h.sky)===norm(name));
+    // prefer a person-specific match, else a habit with no person set
+    const h=cands.find(c=>c.person&&norm(c.person)===norm(person))||cands.find(c=>!c.person);
+    if(h){h.log[date]=true;matched++;}
+    else{const key=norm(person)+'|'+norm(name);if(!um[key])um[key]={name,person,count:0};um[key].count++;}
+  });
+  return {matched,unmatched:Object.values(um).sort((a,b)=>b.count-a.count)};
+}
+function knownPeople(){const s=new Set();S.habits.forEach(h=>{if(h.person)s.add(h.person);});lastUnmatched.forEach(u=>{if(u.person)s.add(u.person);});return[...s];}
+function createFromUnmatched(name,person){
+  S.habits.push({id:genId(),name:person?`${name} — ${person}`:name,link:'',cadence:'daily',target:0,sky:name,person:person||'',archived:false,log:{}});
+  if(lastEvents){const r=applySkylight(lastEvents,lastSince);lastUnmatched=r.unmatched;}
+  save();renderHabits();toast('Habit created &amp; filled');
+}
+function renderUnmatched(){
+  const w=document.getElementById('unmatchedWrap');if(!w)return;w.innerHTML='';
+  // refresh people datalist
+  const dl=document.getElementById('peopleList');if(dl)dl.innerHTML=knownPeople().map(p=>`<option value="${p}">`).join('');
+  if(!lastUnmatched.length)return;
+  const card=document.createElement('div');card.className='card';
+  card.innerHTML=`<h3 style="margin:0 0 4px;font-size:15px">Unmatched from Skylight</h3>
+    <p class="hint" style="margin:0 0 10px">${lastUnmatched.length} routine/person combination${lastUnmatched.length===1?'':'s'} synced with no matching habit. Create one in a tap — it fills from the last sync.</p>`;
+  lastUnmatched.slice(0,40).forEach(u=>{
+    const row=document.createElement('div');row.className='umrow';
+    row.innerHTML=`<div class="t">${u.name}${u.person?`<small>${u.person}</small>`:''}</div>
+      <span class="cnt">${u.count}×</span><button class="mk">+ Habit</button>`;
+    row.querySelector('.mk').onclick=()=>createFromUnmatched(u.name,u.person);
+    card.appendChild(row);});
+  if(lastUnmatched.length>40){const m=document.createElement('p');m.className='hint';m.textContent='+ '+(lastUnmatched.length-40)+' more…';card.appendChild(m);}
+  w.appendChild(card);
 }
 function renderConn(){
   const c=S.conn||{};
@@ -757,15 +855,38 @@ document.getElementById('addLine').onclick=()=>{S.money[curMoney].push({n:'',v:'
 document.getElementById('addNw').onclick=()=>{S.money[curNw].push({n:'',v:''});save();renderNw();};
 
 /* DATA */
-function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+function exportData(){
+  S.meta=S.meta||{};S.meta.lastBackup=new Date().toISOString();save();
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='ppp-plan-'+(S.profile||'household').replace(/\s+/g,'-').toLowerCase()+'-'+todayISO()+'.json';a.click();toast('Backup exported');}
+  a.download='ppp-plan-'+(S.profile||'household').replace(/\s+/g,'-').toLowerCase()+'-'+todayISO()+'.json';a.click();
+  renderBackupState();updateNudge();toast('Backup exported');}
 function importData(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();
-  rd.onload=()=>{try{S=normalise(JSON.parse(rd.result));save();renderAll();toast('Backup imported');}
+  rd.onload=()=>{try{const next=normalise(JSON.parse(rd.result));
+      if(!confirm('Replace everything currently in this app with the imported backup?')){e.target.value='';return;}
+      S=next;save();renderAll();toast('Backup imported');}
     catch(err){toast('Could not read that file');}};rd.readAsText(f);e.target.value='';}
-function resetAll(){if(confirm('Clear all data on this device? Export a backup first if you want to keep it.')){S=blank();save();renderAll();toast('Cleared');}}
+function resetAll(){
+  if(!confirm('Clear ALL data on this device? This cannot be undone. A safety backup will be downloaded first.'))return;
+  exportData();
+  S=blank();save();renderAll();toast('Cleared — a backup was downloaded first');}
 
-function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();}
+function daysSince(iso){if(!iso)return Infinity;return Math.floor((Date.now()-new Date(iso).getTime())/86400000);}
+function backupOverdue(){return daysSince(S.meta&&S.meta.lastBackup)>=BACKUP_WARN_DAYS;}
+function renderBackupState(){
+  const el=document.getElementById('backupState');if(!el)return;
+  const d=daysSince(S.meta&&S.meta.lastBackup);
+  el.textContent=d===Infinity?'Never backed up on this device':d===0?'Backed up today':('Last backed up '+d+' day'+(d===1?'':'s')+' ago');
+  el.classList.toggle('warn',backupOverdue());
+}
+function updateNudge(){
+  const overdue=backupOverdue();
+  const dot=document.getElementById('moreDot');if(dot)dot.style.display=overdue?'block':'none';
+  const n=document.getElementById('nudge');if(n)n.style.display=(overdue&&!reminderDismissed)?'flex':'none';
+}
+function dismissNudge(){reminderDismissed=true;updateNudge();}
+
+function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();renderBackupState();updateNudge();}
 renderAll();
 </script>
 </body>
