@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#3B2156">
+<title>PPP · Household Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum:#3B2156; --plum-deep:#2A1740; --plum-soft:#5A3E7A;
+    --amber:#E29A2C; --amber-soft:#F4D9A6;
+    --paper:#FBF6EE; --card:#FFFFFF; --line:#EBE3D6;
+    --ink:#2B2433; --muted:#8A8295; --good:#3F8E62; --bad:#C0593F;
+    --r:16px; --sh:0 1px 2px rgba(43,36,51,.04), 0 8px 24px rgba(43,36,51,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'Poppins',-apple-system,system-ui,sans-serif;background:var(--paper);
+    color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:84px}
+  h1,h2,h3,.disp{font-family:'Fraunces','Poppins',serif}
+  button{font-family:inherit;cursor:pointer}
+  input,textarea,select{font-family:inherit}
+  a{color:inherit}
+
+  header{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);
+    color:#fff;padding:22px 20px 26px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
+    border:2px solid rgba(255,255,255,.08);border-radius:50%}
+  .roundel{display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--amber-soft);font-weight:600}
+  .roundel b{width:6px;height:6px;background:var(--amber);border-radius:50%;display:inline-block}
+  header h1{margin:8px 0 2px;font-size:27px;font-weight:600;letter-spacing:-.01em}
+  .who{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.7);margin-top:4px}
+  .who input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;
+    border-radius:8px;padding:4px 9px;font-size:13px;font-weight:500;max-width:190px}
+  .who input::placeholder{color:rgba(255,255,255,.5)}
+
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);
+    backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:50;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  nav button{flex:1;background:none;border:none;padding:8px 2px 6px;color:var(--muted);
+    font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:10px}
+  nav button .ic{font-size:18px;line-height:1}
+  nav button.on{color:var(--plum)}
+
+  main{max-width:680px;margin:0 auto;padding:20px 16px 8px}
+  .view{display:none;animation:rise .35s ease}
+  .view.on{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);font-weight:600;margin:0 0 4px}
+  .view > h2{font-size:23px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+  .lede{color:var(--muted);font-size:14px;margin:0 0 18px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:18px;box-shadow:var(--sh);margin-bottom:14px}
+  label.fld{display:block;font-size:12px;font-weight:600;color:var(--plum-soft);margin:0 0 5px}
+  textarea,input.txt,select.txt{width:100%;border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;font-size:14px;background:#FCFAF6;color:var(--ink);resize:vertical}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--amber);background:#fff;
+    box-shadow:0 0 0 3px rgba(226,154,44,.14)}
+  textarea{min-height:70px;line-height:1.45}
+
+  .pillar{margin-bottom:14px}
+  .pillar .top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+  .num{flex:none;width:34px;height:34px;border-radius:10px;background:var(--plum);color:#fff;
+    font-family:'Fraunces',serif;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .pillar .top h3{margin:0;font-size:16px;font-weight:600}
+  .pillar .top small{display:block;font-family:'Poppins';font-weight:400;font-size:11.5px;color:var(--muted)}
+
+  .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .vgrid input{padding:8px 11px}
+
+  /* ---- Goals overview ---- */
+  .ov{display:flex;flex-direction:column;gap:9px}
+  .ovrow{display:flex;align-items:center;gap:10px}
+  .ovrow .nm{flex:none;width:96px;font-size:12px;font-weight:600;color:var(--plum-soft)}
+  .ovbar{flex:1;height:8px;border-radius:6px;background:var(--line);overflow:hidden}
+  .ovbar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#d98520);border-radius:6px}
+  .ovrow .pc{flex:none;width:40px;text-align:right;font-size:12px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums}
+
+  .pillar-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--plum);background:var(--amber-soft);padding:3px 9px;border-radius:20px;margin-bottom:10px}
+
+  /* ---- Goal card ---- */
+  .goal{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#FCFAF6}
+  .goal .row1{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+  .goal .row1 input{flex:1;border:none;background:none;font-weight:600;font-size:14px;padding:2px 0}
+  .goal .row1 input:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
+  .goal .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .pill{font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:4px 10px;background:#fff;color:var(--plum-soft)}
+  .goal input.why{width:100%;border:none;border-bottom:1px dashed var(--line);background:none;
+    font-size:12.5px;font-style:italic;color:var(--muted);padding:4px 0;margin-bottom:8px}
+  .goal input.why:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
+  .miles{margin:2px 0 6px}
+  .mile{display:flex;align-items:center;gap:8px;padding:3px 0}
+  .mile .box{flex:none;width:18px;height:18px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;cursor:pointer}
+  .mile .box.on{background:var(--good);border-color:var(--good);color:#fff}
+  .mile input{flex:1;border:none;background:none;font-size:13px;padding:2px 0}
+  .mile input:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
+  .mile.done input{text-decoration:line-through;color:var(--muted)}
+  .prog{flex:1;min-width:130px;display:flex;align-items:center;gap:8px}
+  .prog input[type=range]{flex:1;accent-color:var(--amber);height:4px}
+  .progauto{flex:1;min-width:130px;display:flex;align-items:center;gap:8px}
+  .progauto .ovbar{height:7px}
+  .pct{font-size:12px;font-weight:700;color:var(--plum);min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+  .del{background:none;border:none;color:var(--muted);font-size:18px;line-height:1;padding:2px 6px}
+  .del:hover{color:var(--bad)}
+  .ministep{background:none;border:none;color:var(--plum-soft);font-size:12px;font-weight:600;padding:2px 0;cursor:pointer}
+  .ministep:hover{color:var(--amber)}
+  .addbtn{background:none;border:1px dashed var(--line);color:var(--plum-soft);font-weight:600;
+    font-size:13px;border-radius:10px;padding:9px;width:100%;margin-top:2px}
+  .addbtn:hover{border-color:var(--amber);color:var(--amber)}
+  .smart{font-size:11.5px;color:var(--muted);margin:0 0 12px}
+  .smart b{color:var(--plum-soft)}
+
+  /* ---- Habit card ---- */
+  .habit{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#FCFAF6}
+  .habit.arch{opacity:.55}
+  .habit .hh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .habit .hh input.nm{border:none;background:none;font-weight:600;font-size:14px;padding:2px 0;flex:1}
+  .habit .hh input.nm:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
+  .habit .ctl{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  .habit select.cad,.habit select.lk{font-size:11px;font-weight:600;border:1px solid var(--line);
+    border-radius:20px;padding:4px 9px;background:#fff;color:var(--plum-soft)}
+  .habit input.tgt{width:54px;text-align:center;font-size:11px;font-weight:600;border:1px solid var(--line);
+    border-radius:20px;padding:4px 6px;background:#fff;color:var(--plum-soft)}
+  .habit .tgtlbl{font-size:11px;color:var(--muted)}
+  .hm{display:flex;flex-direction:column;gap:4px;margin:4px 0 6px}
+  .hmhead,.hmrow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .hmhead span{text-align:center;font-size:8px;color:var(--muted);font-weight:600;text-transform:uppercase}
+  .hcell{aspect-ratio:1;border-radius:6px;border:1.5px solid var(--line);background:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .hcell.on{background:var(--good);border-color:var(--good)}
+  .hcell.today{box-shadow:0 0 0 2px var(--amber-soft)}
+  .hcell.future{background:repeating-linear-gradient(45deg,#fff,#fff 3px,#F4F1EA 3px,#F4F1EA 6px);cursor:default;opacity:.6}
+  .prow{display:flex;gap:6px;margin:4px 0 6px;flex-wrap:wrap}
+  .pcell{flex:1;min-width:42px;text-align:center;cursor:pointer}
+  .pcell .pl{font-size:9px;color:var(--muted);font-weight:600;margin-bottom:3px}
+  .pcell .pd{height:26px;border-radius:8px;border:1.5px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+  .pcell .pd.on{background:var(--good);border-color:var(--good);color:#fff}
+  .pcell .pd.today{box-shadow:0 0 0 2px var(--amber-soft)}
+  .chips{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .chip{font-size:11.5px;color:var(--muted)}
+  .chip b{color:var(--plum);font-weight:700;font-variant-numeric:tabular-nums}
+  .chip .fire{color:var(--amber)}
+  .habit .sky{margin-top:8px;display:flex;align-items:center;gap:6px}
+  .habit .sky input{flex:1;font-size:12px;border:1px dashed var(--line);background:#fff;border-radius:8px;padding:6px 9px;color:var(--ink)}
+  .habit .sky label{font-size:10px;color:var(--muted);white-space:nowrap;font-weight:600}
+  .miniact{display:flex;gap:10px;margin-top:8px}
+  .miniact button{background:none;border:none;color:var(--muted);font-size:11px;font-weight:600;padding:0;cursor:pointer}
+  .miniact button:hover{color:var(--plum)}
+
+  /* ---- Money ---- */
+  .stat{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .stat:last-child{border-bottom:none}
+  .stat .v{font-weight:700;font-variant-numeric:tabular-nums}
+  .big{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:2px solid var(--line)}
+  .big .lbl{font-size:13px;color:var(--muted);font-weight:600}
+  .big .amt{font-family:'Fraunces',serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .li{display:flex;gap:8px;margin-bottom:7px;align-items:center}
+  .li input.name{flex:1}
+  .li input.amt{width:108px;text-align:right;font-variant-numeric:tabular-nums}
+  .li .pre{color:var(--muted);font-weight:600}
+  .seg{display:flex;gap:6px;margin-bottom:12px}
+  .seg button{flex:1;padding:8px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:12px;font-weight:600;color:var(--muted)}
+  .seg button.on{background:var(--plum);border-color:var(--plum);color:#fff}
+  .scorebox{display:flex;gap:10px;align-items:center}
+  .scorebox input{width:70px;text-align:center;font-weight:700;font-size:18px}
+  .scorebox .o{color:var(--muted);font-weight:600}
+  .ring{--p:0;width:74px;height:74px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--amber) calc(var(--p)*1%), var(--line) 0);display:flex;align-items:center;justify-content:center;position:relative}
+  .ring::before{content:"";position:absolute;inset:7px;background:var(--card);border-radius:50%}
+  .ring span{position:relative;font-weight:700;font-size:15px;color:var(--plum)}
+
+  .hint{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+  .hint b{color:var(--plum-soft)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .toolbar button{flex:1;min-width:120px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;font-size:13px;font-weight:600;color:var(--plum)}
+  .toolbar button.warn{color:var(--bad)}
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);
+    background:var(--plum);color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:.3s;z-index:99}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .savetag{font-size:11px;color:var(--muted);text-align:center;margin:14px 0 0}
+
+  /* chain view */
+  .hero{display:flex;align-items:baseline;gap:6px;margin:2px 0 4px;flex-wrap:wrap}
+  .hero .em{font-size:16px;align-self:center}
+  .hero .big{font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--plum);font-variant-numeric:tabular-nums}
+  .hero .lbl{font-size:12px;color:var(--muted);font-weight:600}
+  .skybadge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:#fff;background:var(--plum-soft);padding:3px 8px;border-radius:20px;margin-left:2px}
+  .chain{display:flex;gap:2px;margin:6px 0 2px;align-items:stretch}
+  .chain .lk{flex:1;height:22px;border-radius:5px;background:#fff;border:1.5px solid var(--line);cursor:pointer;transition:background .12s}
+  .chain .lk.on{background:var(--good);border-color:var(--good)}
+  .chain .lk.on.lprev{border-top-left-radius:0;border-bottom-left-radius:0;border-left-color:var(--good)}
+  .chain .lk.on.lnext{border-top-right-radius:0;border-bottom-right-radius:0;border-right-color:var(--good)}
+  .chain .lk.today{box-shadow:0 0 0 2px var(--amber-soft)}
+  .chain .lk.ro{cursor:default}
+  .syncbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .syncbtn{border:1px solid var(--plum);background:var(--plum);color:#fff;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600}
+  .syncbtn:disabled{opacity:.5}
+  .lastsync{font-size:11px;color:var(--muted)}
+  .conn .rowck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--plum-soft);font-weight:600;margin:2px 0 12px}
+  .conn .rowck input{accent-color:var(--amber);width:16px;height:16px}
+
+  /* guide */
+  .acc .item{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--sh)}
+  .acc .hd{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;padding:14px 16px;font-weight:600;font-size:14px;color:var(--ink)}
+  .acc .hd .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--amber-soft);color:var(--plum);font-family:'Fraunces',serif;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .acc .hd .chev{margin-left:auto;color:var(--muted);transition:transform .2s}
+  .acc .item.open .chev{transform:rotate(90deg)}
+  .acc .bd{display:none;padding:2px 16px 16px;font-size:13.5px;color:var(--ink);line-height:1.6}
+  .acc .item.open .bd{display:block;animation:rise .25s ease}
+  .acc .bd p{margin:0 0 10px}
+  .acc .bd h5{font-size:12px;font-weight:700;color:var(--plum-soft);text-transform:uppercase;letter-spacing:.03em;margin:14px 0 6px}
+  .acc .bd ol,.acc .bd ul{margin:0 0 10px;padding-left:20px}
+  .acc .bd li{margin-bottom:7px}
+  .acc .bd b{color:var(--plum)}
+  .callout{background:#FBF1DD;border:1px solid var(--amber-soft);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7a5a1e;margin:10px 0;line-height:1.5}
+  .callout.warn{background:#FBEBE6;border-color:#F0C4B5;color:#9a3f24}
+  .callout b{color:inherit}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#F1ECE2;border-radius:5px;padding:1px 5px;color:var(--plum-deep);word-break:break-word}
+  .codeblock{position:relative;background:var(--plum-deep);color:#EDE6F2;border-radius:10px;padding:12px 14px;padding-top:30px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin:8px 0}
+  .codeblock .cp{position:absolute;top:7px;right:7px;background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:6px;font-size:10.5px;font-weight:600;padding:4px 9px;cursor:pointer}
+  .codeblock .cp:hover{background:rgba(255,255,255,.3)}
+</style>
+</head>
+<body>
+<header>
+  <div class="roundel"><b></b>Clarity · Hope · Confidence<b></b></div>
+  <h1>Household Plan</h1>
+  <div class="who"><span>Plan for</span><input id="profile" placeholder="Name / household" maxlength="40"></div>
+</header>
+
+<main>
+  <!-- PLAN -->
+  <section class="view on" data-v="plan">
+    <p class="eyebrow">Step 1 · Foundation</p>
+    <h2>Your plan on a page</h2>
+    <p class="lede">Begin with the end in mind. Your purpose, values, and the one goal everything serves.</p>
+    <div class="card"><label class="fld">Mission — your purpose, in a sentence</label>
+      <textarea data-bind="plan.mission" placeholder="What is most important to you and your family?"></textarea></div>
+    <div class="card"><label class="fld">Core values</label>
+      <div class="vgrid">
+        <input class="txt" data-bind="plan.v0" placeholder="Value 1"><input class="txt" data-bind="plan.v1" placeholder="Value 2">
+        <input class="txt" data-bind="plan.v2" placeholder="Value 3"><input class="txt" data-bind="plan.v3" placeholder="Value 4">
+        <input class="txt" data-bind="plan.v4" placeholder="Value 5"></div></div>
+    <div class="card"><label class="fld">Ultimate goal</label>
+      <textarea data-bind="plan.ultimate" placeholder="Your overarching aim — where this is all heading."></textarea></div>
+  </section>
+
+  <!-- RESET -->
+  <section class="view" data-v="reset">
+    <p class="eyebrow">Step 2 · Current state</p>
+    <h2>Five-Point Reset</h2>
+    <p class="lede">Stand back and honestly assess where you are right now. A living document — revisit it monthly.</p>
+    <div id="resetWrap"></div>
+  </section>
+
+  <!-- GOALS -->
+  <section class="view" data-v="goals">
+    <p class="eyebrow">Step 3 · Future state</p>
+    <h2>Goals</h2>
+    <p class="lede">Where you want to be. Break each into milestones — progress fills in as you tick them off.</p>
+    <div class="card"><label class="fld" style="margin-bottom:10px">Progress overview</label><div class="ov" id="goalsOv"></div></div>
+    <p class="smart"><b>SMART:</b> Specific · Measurable · Achievable · Relevant · Time-bound.</p>
+    <div id="goalsWrap"></div>
+  </section>
+
+  <!-- HABITS -->
+  <section class="view" data-v="habits">
+    <p class="eyebrow">Step 3 · The how</p>
+    <h2>Habits</h2>
+    <p class="lede">The consistent actions that close the gap. Keep the chain unbroken — tap a day to mark it done.</p>
+    <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync from Skylight</button><span class="lastsync"></span></div>
+    <div id="habitsWrap"></div>
+    <button class="addbtn" onclick="addHabit()">+ Add a habit</button>
+    <p class="hint"><b>Tip:</b> put the exact <b>Skylight routine name</b> on a habit and it becomes a read-only mirror — completions flow in from the frame when you sync. Leave it blank to tick the habit manually here. Link a habit to a goal to tie the daily action to the destination.</p>
+    <p class="hint" id="showArch" style="text-align:center;display:none"><a href="#" onclick="toggleArch(event)" style="color:var(--plum-soft);font-weight:600;text-decoration:none">Show archived ▾</a></p>
+  </section>
+
+  <!-- MONEY -->
+  <section class="view" data-v="money">
+    <p class="eyebrow">Step 4 · Financial wellbeing</p>
+    <h2>Money snapshot</h2>
+    <p class="lede">The simple version: are you living within your means, and what is your net worth?</p>
+    <div class="card"><label class="fld">PPP checklist score</label>
+      <div class="scorebox"><div class="ring" id="scoreRing"><span id="scoreRingT">0</span></div>
+        <div><input class="txt" type="number" min="0" max="44" data-bind="money.score" id="scoreIn"> <span class="o">/ 44</span>
+          <p class="hint" style="margin-top:6px">Score yourself against the full PPP checklist, then track it over time.</p></div></div></div>
+    <div class="card"><h3 style="margin:0 0 12px;font-size:16px">Monthly budget</h3>
+      <div class="seg"><button class="on" data-money="income" onclick="moneyTab('income')">Income</button>
+        <button data-money="nondisc" onclick="moneyTab('nondisc')">Essentials</button>
+        <button data-money="disc" onclick="moneyTab('disc')">Lifestyle</button></div>
+      <div id="moneyLines"></div><button class="addbtn" id="addLine">+ Add line</button>
+      <div class="big"><span class="lbl">Monthly surplus / deficit</span><span class="amt" id="netFlow">$0</span></div></div>
+    <div class="card"><h3 style="margin:0 0 10px;font-size:16px">Net worth</h3>
+      <div class="seg" style="margin-bottom:10px"><button class="on" data-nw="assets" onclick="nwTab('assets')">Assets</button>
+        <button data-nw="liab" onclick="nwTab('liab')">Liabilities</button></div>
+      <div id="nwLines"></div><button class="addbtn" id="addNw">+ Add line</button>
+      <div class="stat" style="margin-top:12px"><span>Total assets</span><span class="v" id="totAssets">$0</span></div>
+      <div class="stat"><span>Total liabilities</span><span class="v" id="totLiab">$0</span></div>
+      <div class="big"><span class="lbl">Net worth</span><span class="amt" id="netWorth">$0</span></div></div>
+    <p class="hint">This snapshot leaves out forecasting, interest and retirement modelling — for those, keep the full PPP Excel tool. Not financial advice.</p>
+  </section>
+
+  <!-- MORE -->
+  <section class="view" data-v="more">
+    <p class="eyebrow">Guide &amp; settings</p>
+    <h2>Setup &amp; guide</h2>
+    <p class="lede">Everything you need to run the plan — and to connect Skylight — is here. Tap a section to open it.</p>
+
+    <div class="acc">
+      <div class="item open">
+        <button class="hd" onclick="accToggle(this)"><span class="n">▶</span>Quick start (5 minutes)<span class="chev">›</span></button>
+        <div class="bd">
+          <ol>
+            <li>Put your name (or household) at the top of the app.</li>
+            <li><b>Plan:</b> write a one-line mission and a few values.</li>
+            <li><b>Reset:</b> jot one honest line under each of the five pillars.</li>
+            <li><b>Goals:</b> add one goal to your most pressing pillar, with a milestone or two.</li>
+            <li><b>Habits:</b> add one daily habit and tap today's link in the chain.</li>
+            <li><b>More → Export backup</b> so you don't lose it.</li>
+          </ol>
+          <p>That's a working PPP. Deepen it over the coming weeks — this is a lifelong tool, not a one-sitting job.</p>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">1</span>The 6-step rollout<span class="chev">›</span></button>
+        <div class="bd">
+          <ol>
+            <li><b>Set up your support crew.</b> A "three-legged stool": your employer (financial wellbeing &amp; development), a mentor or family member (accountability and an outside view), and others as needed. Tell each who else is involved — be transparent.</li>
+            <li><b>Five-Point Reset.</b> Honestly assess your current state across the five pillars. Do this first; it sets the direction for everything else.</li>
+            <li><b>Goals &amp; habits.</b> Turn your toughest reset areas into up to five SMART goals, then set the daily/weekly habits that close the gap.</li>
+            <li><b>Financial tracker.</b> Use a budgeting app or bank feed for day-to-day tracking; use this app's Money snapshot for reviews. Score the PPP checklist out of 44.</li>
+            <li><b>First meeting.</b> Share your plan with the crew, check your goals are realistic, and agree the first actions.</li>
+            <li><b>Set a cadence.</b> Meet <b>monthly</b> when working through challenges, <b>quarterly</b> when tracking well. Review the plan before each meeting.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">2</span>Using the app, screen by screen<span class="chev">›</span></button>
+        <div class="bd">
+          <p><b>Plan</b> — your purpose, values and ultimate goal. The anchor everything serves.</p>
+          <p><b>Reset</b> — current state across the five pillars. A living document; revisit monthly or after a setback.</p>
+          <p><b>Goals</b> — your future state. Pick a horizon (quarterly/annual/3-year) and add milestones; progress fills in as you tick them. The overview grid shows progress per pillar.</p>
+          <p><b>Habits</b> — the chain. Daily, weekly or monthly. Tap to keep it unbroken, link each to a goal, and mirror from Skylight via the routine field.</p>
+          <p><b>Money</b> — checklist score, a simple budget (surplus/deficit) and net worth. No forecasting — keep the full PPP Excel tool for retirement and loan modelling.</p>
+          <p><b>More</b> — this guide, the Skylight connection, and backup/print/clear.</p>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">3</span>The "don't break the chain" method<span class="chev">›</span></button>
+        <div class="bd">
+          <p>Each completed day adds a link; consecutive days merge into a solid chain. The whole game is simple: <b>don't break the chain.</b></p>
+          <ul>
+            <li>A miss dents your <b>current</b> chain, but your <b>best</b> chain still stands — so avoid all-or-nothing thinking. Just start a fresh link tomorrow.</li>
+            <li>Start with one or two habits. Add more only once they're sticking.</li>
+            <li>Use <b>habit-stacking</b> — attach a new habit to one you already do (e.g. "after coffee, read 10 minutes").</li>
+            <li>Mirrored (Skylight) habits fill themselves on sync; manual habits you tap here.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">4</span>Connect Skylight (full setup)<span class="chev">›</span></button>
+        <div class="bd">
+          <p>Optional. Lets the family keep ticking routines on the Skylight frame while this app records them as habit chains — no double entry. It runs through your own free Cloudflare Worker, so your Skylight login never touches this app.</p>
+          <p><b>You'll need:</b> a Cloudflare account (free), the <span class="code">skylight-ppp-worker.js</span> file, and your Skylight login.</p>
+
+          <h5>Step 1 · Find your frame ID</h5>
+          <p>Log in at <span class="code">ourskylight.com</span> and open your calendar. The number in the address <span class="code">ourskylight.com/calendar/NUMBER</span> is your frame ID.</p>
+
+          <h5>Step 2 · Capture your access token</h5>
+          <p>On a computer at <span class="code">ourskylight.com</span>, press <b>F12</b> (DevTools) → <b>Network</b> tab → reload the page. Click any request to <span class="code">app.ourskylight.com/api/…</span> → <b>Headers</b> → copy the full value of the <span class="code">Authorization</span> header. Treat it like a password.</p>
+
+          <h5>Step 3 · Create the Worker</h5>
+          <p>Cloudflare dashboard → <b>Workers &amp; Pages</b> → <b>Create</b> → <b>Create Worker</b>. Replace the starter code with the contents of <span class="code">skylight-ppp-worker.js</span>, then <b>Deploy</b>.</p>
+
+          <h5>Step 4 · Add your secrets</h5>
+          <p>Worker → <b>Settings → Variables and Secrets</b> → add three <b>secrets</b>:</p>
+          <ul>
+            <li><span class="code">SKYLIGHT_TOKEN</span> — the Authorization value from step 2</li>
+            <li><span class="code">SKYLIGHT_FRAME_ID</span> — the number from step 1</li>
+            <li><span class="code">APP_KEY</span> — any random string you invent (you'll paste it into the app too)</li>
+          </ul>
+          <p>Optional plain variable <span class="code">ALLOW_ORIGIN</span> = your app's web address. Or, from a terminal:</p>
+          <div class="codeblock"><button class="cp" onclick="copyCode(this)">Copy</button>wrangler secret put SKYLIGHT_TOKEN
+wrangler secret put SKYLIGHT_FRAME_ID
+wrangler secret put APP_KEY</div>
+
+          <h5>Step 5 · Connect the app</h5>
+          <p>Copy your Worker URL (ends in <span class="code">.workers.dev</span>). In <b>Connections</b> below, paste the URL and the same <span class="code">APP_KEY</span>, tick <b>Routines only</b>, and tap <b>Sync now</b>.</p>
+
+          <h5>Step 6 · Map your habits</h5>
+          <p>On each habit, set <b>Skylight routine</b> to the routine's exact name as it appears on the frame. The habit locks to read-only and fills from sync.</p>
+
+          <h5>Verify (first time)</h5>
+          <p>Confirm the data lines up by calling the debug endpoint with your key — you should see chores with <span class="code">summary</span>, <span class="code">status</span> and <span class="code">completed_on</span>:</p>
+          <div class="codeblock"><button class="cp" onclick="copyCode(this)">Copy</button>curl -H "Authorization: Bearer YOUR_APP_KEY" "https://YOUR-WORKER.workers.dev/raw?since=2026-06-01"</div>
+
+          <div class="callout"><b>Security:</b> your Skylight credentials live only in the Worker's secrets — never in this app or on your phone. For an extra layer, put the Worker route behind Cloudflare Access.</div>
+          <div class="callout warn"><b>Heads up:</b> the Skylight API is unofficial and can change, and the captured token can expire. If a sync returns an auth error, repeat step 2 and update <span class="code">SKYLIGHT_TOKEN</span>. Habit names must match the routine's wording (case and spacing are ignored).</div>
+        </div>
+      </div>
+
+      <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">5</span>Recommendations &amp; tips<span class="chev">›</span></button>
+        <div class="bd">
+          <h5>Meetings</h5>
+          <p>Keep the cadence (monthly/quarterly), report progress honestly, and accept blunt feedback — accountability is the bridge between intention and action.</p>
+          <h5>Goals</h5>
+          <p>Five or fewer. Make them SMART, begin with the end in mind, and break each into milestones so progress is visible.</p>
+          <h5>Habits</h5>
+          <p>Small, stacked and consistent. The unbroken chain beats occasional intensity. If fitness is already strong, point a habit at a weaker area.</p>
+          <h5>Money</h5>
+          <p>Live within your means, keep an emergency fund, avoid high-interest debt, and consider putting extra off the mortgage when you're in surplus. This app isn't financial advice.</p>
+          <h5>Family &amp; data</h5>
+          <p>Share finances monthly and give every member a savings plan. Each person can keep their own exported file. Export a backup regularly — data lives only in this browser.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card conn"><h3 style="margin:0 0 8px;font-size:15px">Connections · Skylight</h3>
+      <p class="hint" style="margin:0 0 12px">Pull routine completions from your Skylight frame via your Cloudflare Worker (see guide step 4). Habits with a Skylight routine name are mirrored from the frame, read-only here.</p>
+      <input class="txt" id="connUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.conn.url=this.value;save()">
+      <input class="txt" id="connKey" placeholder="App key (matches Worker secret)" oninput="S.conn.key=this.value;save()">
+      <label class="rowck"><input type="checkbox" id="connRO" onchange="S.conn.routinesOnly=this.checked;save()"> Routines only (ignore one-off chores)</label>
+      <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync now</button><span class="lastsync"></span></div></div>
+
+    <div class="card"><h3 style="margin:0 0 8px;font-size:15px">Back up &amp; share</h3>
+      <p class="hint" style="margin:0 0 10px">Everything stays on this device. Export a file to back up, move devices, or share with your support crew.</p>
+      <div class="toolbar">
+        <button onclick="exportData()">⬇ Export backup</button>
+        <button onclick="document.getElementById('imp').click()">⬆ Import backup</button></div>
+      <input type="file" id="imp" accept="application/json" hidden onchange="importData(event)">
+      <div class="toolbar" style="margin-top:8px"><button onclick="window.print()">🖨 Print / save PDF</button>
+        <button class="warn" onclick="resetAll()">Clear everything</button></div></div>
+    <p class="savetag" id="saveState">Saved automatically</p>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="plan" onclick="go('plan')"><span class="ic">◎</span>Plan</button>
+  <button data-tab="reset" onclick="go('reset')"><span class="ic">⟳</span>Reset</button>
+  <button data-tab="goals" onclick="go('goals')"><span class="ic">◈</span>Goals</button>
+  <button data-tab="habits" onclick="go('habits')"><span class="ic">✓</span>Habits</button>
+  <button data-tab="money" onclick="go('money')"><span class="ic">$</span>Money</button>
+  <button data-tab="more" onclick="go('more')"><span class="ic">⋯</span>More</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const PILLARS=[
+  {k:'moral',n:'Moral',d:'The backbone — get into the clear, stay accountable'},
+  {k:'family',n:'Family',d:'Put your family first; restore trust, take an interest'},
+  {k:'financial',n:'Financial',d:'Live within your means; plan debt down, save ahead'},
+  {k:'health',n:'Health',d:'Diet, exercise, good habits; manage your red flags'},
+  {k:'care',n:'Care for Others',d:'Be unselfish; increase your usefulness locally'}
+];
+const TF=['Quarterly','Annual','3-Year'];
+const CAD=[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']];
+const KEY='pppHousehold_v1';
+const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
+const todayISO=d=>{const x=d||new Date();return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+let showArchived=false;
+
+let S=load();
+function blank(){
+  const g={},r={};PILLARS.forEach(p=>{g[p.k]=[];r[p.k]=''});
+  return {profile:'',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
+    reset:r,goals:g,habits:[],money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[]},
+    conn:{url:'',key:'',routinesOnly:true,lastSync:''}};
+}
+function normalise(s){
+  s=Object.assign(blank(),s||{});
+  PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
+    g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;});});
+  s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
+    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';});
+  s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
+  return s;
+}
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw)return normalise(JSON.parse(raw));}catch(e){}
+  return blank();
+}
+let saveTimer;
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
+  try{localStorage.setItem(KEY,JSON.stringify(S));
+    document.getElementById('saveState').textContent='Saved · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+  catch(e){document.getElementById('saveState').textContent='In-memory only (saving is blocked in this preview)';}
+},250);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+function accToggle(btn){btn.parentElement.classList.toggle('open');}
+function copyCode(btn){const b=btn.parentElement.cloneNode(true);const x=b.querySelector('.cp');if(x)x.remove();
+  const t=b.textContent.trim();
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>toast('Copy failed'));}
+  else toast('Copy not supported here');}
+
+function go(v){
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.dataset.v===v));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===v));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function bindSimple(){
+  document.querySelectorAll('[data-bind]').forEach(el=>{
+    const path=el.dataset.bind.split('.');const obj=path.length>1?S[path[0]]:S;const key=path.length>1?path[1]:path[0];
+    el.value=obj[key]??'';
+    el.addEventListener('input',()=>{obj[key]=el.value;save();if(el.id==='scoreIn')renderScore();});});
+  const pr=document.getElementById('profile');pr.value=S.profile||'';
+  pr.addEventListener('input',()=>{S.profile=pr.value;save();});
+}
+
+/* RESET */
+function renderReset(){
+  const w=document.getElementById('resetWrap');w.innerHTML='';
+  PILLARS.forEach((p,i)=>{
+    const c=document.createElement('div');c.className='card pillar';
+    c.innerHTML=`<div class="top"><div class="num">${i+1}</div><div><h3>${p.n}</h3><small>${p.d}</small></div></div>
+      <textarea placeholder="Where are you right now? What needs to change?"></textarea>`;
+    const ta=c.querySelector('textarea');ta.value=S.reset[p.k]||'';
+    ta.addEventListener('input',()=>{S.reset[p.k]=ta.value;save();});
+    w.appendChild(c);});
+}
+
+/* GOALS */
+function goalPct(g){if(g.miles&&g.miles.length)return Math.round(g.miles.filter(m=>m.done).length/g.miles.length*100);return g.p||0;}
+function renderGoalsOverview(){
+  const ov=document.getElementById('goalsOv');ov.innerHTML='';
+  PILLARS.forEach(p=>{
+    const gs=S.goals[p.k];const avg=gs.length?Math.round(gs.reduce((t,g)=>t+goalPct(g),0)/gs.length):0;
+    const row=document.createElement('div');row.className='ovrow';
+    row.innerHTML=`<span class="nm">${p.n}</span><div class="ovbar"><i style="width:${gs.length?avg:0}%"></i></div>
+      <span class="pc">${gs.length?avg+'%':'—'}</span>`;
+    ov.appendChild(row);});
+}
+function renderGoals(){
+  const w=document.getElementById('goalsWrap');w.innerHTML='';
+  PILLARS.forEach(p=>{
+    const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<span class="pillar-tag">${p.n}</span>`;
+    S.goals[p.k].forEach((goal,idx)=>c.appendChild(goalEl(p.k,goal,idx)));
+    const add=document.createElement('button');add.className='addbtn';add.textContent='+ Add '+p.n.toLowerCase()+' goal';
+    add.onclick=()=>{S.goals[p.k].push({t:'',tf:'Annual',why:'',due:'',miles:[],p:0});save();renderGoals();renderGoalsOverview();};
+    c.appendChild(add);w.appendChild(c);});
+  renderGoalsOverview();
+}
+function goalEl(pk,goal,idx){
+  const el=document.createElement('div');el.className='goal';
+  const auto=goal.miles&&goal.miles.length;const pct=goalPct(goal);
+  el.innerHTML=`<div class="row1"><input class="title" placeholder="Describe the goal…"><button class="del">×</button></div>
+    <input class="why" placeholder="Why does this matter?">
+    <div class="meta">
+      <select class="pill tf">${TF.map(t=>`<option ${t===goal.tf?'selected':''}>${t}</option>`).join('')}</select>
+      <input class="pill due" type="date" style="color:var(--plum-soft)">
+    </div>
+    <div class="miles"></div>
+    <button class="ministep">+ milestone</button>
+    <div class="meta" style="margin-top:6px">
+      ${auto?`<div class="progauto"><div class="ovbar"><i style="width:${pct}%"></i></div><span class="pct">${pct}%</span></div>`
+            :`<div class="prog"><input type="range" min="0" max="100" step="5" value="${goal.p}"><span class="pct">${pct}%</span></div>`}
+    </div>`;
+  const title=el.querySelector('.title');title.value=goal.t;title.addEventListener('input',()=>{goal.t=title.value;save();});
+  const why=el.querySelector('.why');why.value=goal.why;why.addEventListener('input',()=>{goal.why=why.value;save();});
+  el.querySelector('.tf').addEventListener('change',e=>{goal.tf=e.target.value;save();});
+  const due=el.querySelector('.due');due.value=goal.due;due.addEventListener('change',()=>{goal.due=due.value;save();});
+  el.querySelector('.del').onclick=()=>{S.goals[pk].splice(idx,1);save();renderGoals();};
+  // milestones
+  const mw=el.querySelector('.miles');
+  (goal.miles||[]).forEach((m,mi)=>{
+    const row=document.createElement('div');row.className='mile'+(m.done?' done':'');
+    row.innerHTML=`<div class="box ${m.done?'on':''}">✓</div><input placeholder="Milestone…"><button class="del" style="font-size:15px">×</button>`;
+    const mInp=row.querySelector('input');mInp.value=m.t;
+    mInp.addEventListener('input',()=>{m.t=mInp.value;save();});
+    row.querySelector('.box').onclick=()=>{m.done=!m.done;save();renderGoals();renderGoalsOverview();};
+    row.querySelector('.del').onclick=()=>{goal.miles.splice(mi,1);save();renderGoals();renderGoalsOverview();};
+    mw.appendChild(row);});
+  el.querySelector('.ministep').onclick=()=>{goal.miles=goal.miles||[];goal.miles.push({t:'',done:false});save();renderGoals();};
+  if(!auto){const rng=el.querySelector('input[type=range]'),pc=el.querySelector('.pct');
+    rng.addEventListener('input',()=>{goal.p=+rng.value;pc.textContent=goal.p+'%';save();renderGoalsOverview();});}
+  return el;
+}
+
+/* HABITS */
+function pKey(cad,d){d=d||new Date();
+  if(cad==='weekly'){const x=new Date(d);const dow=(x.getDay()+6)%7;x.setDate(x.getDate()-dow);return 'W'+todayISO(x);}
+  if(cad==='monthly')return 'M'+todayISO(d).slice(0,7);
+  return todayISO(d);}
+function shift(d,cad,i){const x=new Date(d);if(cad==='daily')x.setDate(x.getDate()-i);else if(cad==='weekly')x.setDate(x.getDate()-i*7);else x.setMonth(x.getMonth()-i);return x;}
+function streak(h){let s=0,started=false;const now=new Date();
+  for(let i=0;i<800;i++){const d=shift(now,h.cadence,i);const done=!!h.log[pKey(h.cadence,d)];
+    if(done){s++;started=true;}else{if(!started&&i===0)continue;break;}}return s;}
+function bestStreak(h){let best=0,run=0;const now=new Date();
+  for(let i=800;i>=0;i--){const d=shift(now,h.cadence,i);if(h.log[pKey(h.cadence,d)]){run++;best=Math.max(best,run);}else run=0;}return best;}
+function rate(h){const n=h.cadence==='daily'?30:h.cadence==='weekly'?12:6;let c=0;const now=new Date();
+  for(let i=0;i<n;i++){if(h.log[pKey(h.cadence,shift(now,h.cadence,i))])c++;}return Math.round(c/n*100);}
+function toggle(h,d){const k=pKey(h.cadence,d);if(h.log[k])delete h.log[k];else h.log[k]=true;save();renderHabits();}
+
+function addHabit(){S.habits.push({name:'',link:'',cadence:'daily',target:0,sky:'',archived:false,log:{}});save();renderHabits();}
+function toggleArch(e){e.preventDefault();showArchived=!showArchived;renderHabits();}
+function renderHabits(){
+  const w=document.getElementById('habitsWrap');w.innerHTML='';
+  const active=S.habits.filter(h=>!h.archived||showArchived);
+  if(!active.length)w.innerHTML='<p class="hint" style="text-align:center;padding:8px 0">No habits yet — add one below.</p>';
+  S.habits.forEach((h,idx)=>{
+    if(h.archived&&!showArchived)return;
+    w.appendChild(habitEl(h,idx));
+  });
+  const anyArch=S.habits.some(h=>h.archived);
+  const sa=document.getElementById('showArch');sa.style.display=anyArch?'block':'none';
+  sa.querySelector('a').textContent=showArchived?'Hide archived ▴':'Show archived ▾';
+}
+function habitEl(h,idx){
+  const ro=!!(h.sky&&h.sky.trim());
+  const el=document.createElement('div');el.className='habit'+(h.archived?' arch':'');
+  const link='<option value="">— link goal</option>'+PILLARS.map(p=>`<option value="${p.k}" ${h.link===p.k?'selected':''}>${p.n}</option>`).join('');
+  const cad=CAD.map(c=>`<option value="${c[0]}" ${h.cadence===c[0]?'selected':''}>${c[1]}</option>`).join('');
+  const unit=h.cadence==='daily'?'days':h.cadence==='weekly'?'weeks':'months';
+  const st=streak(h);
+  el.innerHTML=`<div class="hh"><input class="nm" placeholder="Habit name…"><button class="del">×</button></div>
+    <div class="hero"><span class="em">🔗</span><span class="big">${st||'—'}</span><span class="lbl">${unit} unbroken</span>
+      ${ro?'<span class="skybadge">⛓ via Skylight</span>':''}</div>
+    <div class="ctl"><select class="cad">${cad}</select><select class="lk">${link}</select>
+      ${h.cadence==='daily'?'<span class="tgtlbl">target</span><input class="tgt" type="number" min="0" placeholder="–"><span class="tgtlbl">/ wk</span>':''}</div>
+    <div class="track"></div>
+    <div class="chips"></div>
+    <div class="sky"><label>Skylight routine</label><input placeholder="(exact frame name — locks this habit to sync)"></div>
+    <div class="miniact"><button class="arch">${h.archived?'Unarchive':'Archive'}</button></div>`;
+  const nm=el.querySelector('.nm');nm.value=h.name;nm.addEventListener('input',()=>{h.name=nm.value;save();});
+  el.querySelector('.cad').addEventListener('change',e=>{h.cadence=e.target.value;save();renderHabits();});
+  el.querySelector('.lk').addEventListener('change',e=>{h.link=e.target.value;save();});
+  const tgtEl=el.querySelector('.tgt');
+  if(tgtEl){tgtEl.value=h.target||'';tgtEl.addEventListener('input',()=>{h.target=+tgtEl.value||0;save();renderHabits();});}
+  const sky=el.querySelector('.sky input');sky.value=h.sky;sky.addEventListener('input',()=>{h.sky=sky.value;save();});
+  sky.addEventListener('change',()=>renderHabits());
+  el.querySelector('.del').onclick=()=>{S.habits.splice(idx,1);save();renderHabits();};
+  el.querySelector('.arch').onclick=()=>{h.archived=!h.archived;save();renderHabits();};
+  const tr=el.querySelector('.track');
+  if(h.cadence==='daily')tr.appendChild(dailyChain(h,ro));else tr.appendChild(periodRow(h,ro));
+  const wkDone=weekCount(h);
+  el.querySelector('.chips').innerHTML=`<span class="chip">Best <b>${bestStreak(h)}</b></span>
+    <span class="chip">${h.cadence==='daily'?'30-day':h.cadence==='weekly'?'12-wk':'6-mo'} <b>${rate(h)}%</b></span>
+    ${h.cadence==='daily'&&h.target?`<span class="chip">This wk <b>${wkDone}/${h.target}</b></span>`:''}`;
+  return el;
+}
+function weekCount(h){let c=0;const now=new Date();const dow=(now.getDay()+6)%7;const mon=new Date(now);mon.setDate(now.getDate()-dow);
+  for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(h.log[todayISO(d)])c++;}return c;}
+function dailyChain(h,ro){
+  const wrap=document.createElement('div');wrap.className='chain';const t=todayISO();const now=new Date();const N=21;
+  const days=[];for(let i=N-1;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);days.push(d);}
+  days.forEach((d,i)=>{
+    const iso=todayISO(d);const on=!!h.log[iso];
+    const prevOn=i>0&&!!h.log[todayISO(days[i-1])];const nextOn=i<days.length-1&&!!h.log[todayISO(days[i+1])];
+    const lk=document.createElement('div');
+    lk.className='lk'+(on?' on':'')+(on&&prevOn?' lprev':'')+(on&&nextOn?' lnext':'')+(iso===t?' today':'')+(ro?' ro':'');
+    lk.title=iso;if(!ro)lk.onclick=()=>toggle(h,d);
+    wrap.appendChild(lk);});
+  return wrap;
+}
+function periodRow(h,ro){
+  const row=document.createElement('div');row.className='prow';
+  const n=h.cadence==='weekly'?8:6;const now=new Date();const curK=pKey(h.cadence,now);
+  for(let i=n-1;i>=0;i--){
+    const d=shift(now,h.cadence,i);const k=pKey(h.cadence,d);
+    const lbl=h.cadence==='weekly'?(''+d.getDate()+'/'+(d.getMonth()+1)):d.toLocaleString('en',{month:'short'});
+    const cell=document.createElement('div');cell.className='pcell';
+    cell.innerHTML=`<div class="pl">${lbl}</div><div class="pd ${h.log[k]?'on':''} ${k===curK?'today':''}">✓</div>`;
+    if(!ro)cell.querySelector('.pd').onclick=()=>toggle(h,d);
+    row.appendChild(cell);}
+  return row;
+}
+
+/* SKYLIGHT SYNC */
+async function syncSkylight(){
+  const c=S.conn;
+  if(!c.url){toast('Add your Worker URL in More → Connections');go('more');return;}
+  document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=true);
+  try{
+    const since=todayISO(new Date(Date.now()-1000*60*60*24*60));
+    const u=c.url.replace(/\/+$/,'')+'/sync?since='+since+(c.routinesOnly!==false?'&routinesOnly=1':'');
+    const res=await fetch(u,{headers:c.key?{'Authorization':'Bearer '+c.key}:{}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    const r=applySkylight(j.events||[],since);
+    c.lastSync=new Date().toISOString();save();renderHabits();renderConn();
+    toast(r.matched+' completions synced · '+r.unmatched+' unmatched');
+  }catch(e){toast('Sync failed: '+e.message);}
+  finally{document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=false);}
+}
+function applySkylight(events,since){
+  const map={};S.habits.forEach(h=>{if(h.sky&&h.sky.trim())map[h.sky.trim().toLowerCase()]=h;});
+  const today=todayISO();
+  Object.values(map).forEach(h=>{Object.keys(h.log).forEach(k=>{if(k.length===10&&k>=since&&k<=today)delete h.log[k];});});
+  let matched=0,unmatched=0;
+  events.forEach(ev=>{
+    const h=map[(ev.name||'').trim().toLowerCase()];const date=(ev.date||'').slice(0,10);
+    if(h&&date){h.log[date]=true;matched++;}else unmatched++;});
+  return {matched,unmatched};
+}
+function renderConn(){
+  const c=S.conn||{};
+  const u=document.getElementById('connUrl');if(u&&document.activeElement!==u)u.value=c.url||'';
+  const k=document.getElementById('connKey');if(k&&document.activeElement!==k)k.value=c.key||'';
+  const r=document.getElementById('connRO');if(r)r.checked=c.routinesOnly!==false;
+  document.querySelectorAll('.lastsync').forEach(e=>e.textContent=c.lastSync?('Last sync: '+new Date(c.lastSync).toLocaleString()):'Not synced yet');
+}
+
+/* MONEY */
+let curMoney='income',curNw='assets';
+const SUGGEST={
+  income:['After-tax pay','Bonus / GBS','Other income'],
+  nondisc:['Mortgage / rent','Groceries','Utilities','Insurance','Rates / levies','Phone & internet','Fuel','Vehicle','Medical'],
+  disc:['Charitable giving','School fees','Clothing','Travel','Takeaways','Recreation','Homewares','Gifts'],
+  assets:['House','Cash & cheque','Savings','Super / investments','Vehicle'],
+  liab:['Mortgage','Other loans','Credit card']
+};
+function dataList(id,arr){return `<datalist id="${id}">${arr.map(x=>`<option value="${x}">`).join('')}</datalist>`;}
+function moneyTab(t){curMoney=t;document.querySelectorAll('[data-money]').forEach(b=>b.classList.toggle('on',b.dataset.money===t));renderMoney();}
+function nwTab(t){curNw=t;document.querySelectorAll('[data-nw]').forEach(b=>b.classList.toggle('on',b.dataset.nw===t));renderNw();}
+function lineRow(arr,idx,listId){
+  const r=document.createElement('div');r.className='li';
+  r.innerHTML=`<input class="txt name" list="${listId}" placeholder="Item"><span class="pre">$</span>
+    <input class="txt amt" type="number" inputmode="decimal" placeholder="0"><button class="del">×</button>`;
+  const [nm,am]=r.querySelectorAll('input');nm.value=arr[idx].n||'';am.value=arr[idx].v||'';
+  nm.addEventListener('input',()=>{arr[idx].n=nm.value;save();});
+  am.addEventListener('input',()=>{arr[idx].v=parseFloat(am.value)||0;save();recalc();});
+  r.querySelector('.del').onclick=()=>{arr.splice(idx,1);save();renderMoney();renderNw();recalc();};
+  return r;
+}
+function renderMoney(){const w=document.getElementById('moneyLines');w.innerHTML=dataList('dl_'+curMoney,SUGGEST[curMoney]);
+  S.money[curMoney].forEach((_,i)=>w.appendChild(lineRow(S.money[curMoney],i,'dl_'+curMoney)));recalc();}
+function renderNw(){const w=document.getElementById('nwLines');w.innerHTML=dataList('dl_'+curNw,SUGGEST[curNw]);
+  S.money[curNw].forEach((_,i)=>w.appendChild(lineRow(S.money[curNw],i,'dl_'+curNw)));recalc();}
+const sum=a=>a.reduce((t,x)=>t+(+x.v||0),0);
+function recalc(){
+  const inc=sum(S.money.income),ess=sum(S.money.nondisc),life=sum(S.money.disc);const flow=inc-ess-life;
+  const nf=document.getElementById('netFlow');nf.textContent=fmt(flow);nf.className='amt '+(flow>=0?'pos':'neg');
+  const as=sum(S.money.assets),li=sum(S.money.liab),nw=as-li;
+  document.getElementById('totAssets').textContent=fmt(as);document.getElementById('totLiab').textContent=fmt(li);
+  const nwe=document.getElementById('netWorth');nwe.textContent=fmt(nw);nwe.className='amt '+(nw>=0?'pos':'neg');
+}
+function renderScore(){const v=Math.max(0,Math.min(44,+S.money.score||0));
+  document.getElementById('scoreRing').style.setProperty('--p',(v/44*100));document.getElementById('scoreRingT').textContent=v;}
+document.getElementById('addLine').onclick=()=>{S.money[curMoney].push({n:'',v:''});save();renderMoney();};
+document.getElementById('addNw').onclick=()=>{S.money[curNw].push({n:'',v:''});save();renderNw();};
+
+/* DATA */
+function exportData(){const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='ppp-plan-'+(S.profile||'household').replace(/\s+/g,'-').toLowerCase()+'-'+todayISO()+'.json';a.click();toast('Backup exported');}
+function importData(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{S=normalise(JSON.parse(rd.result));save();renderAll();toast('Backup imported');}
+    catch(err){toast('Could not read that file');}};rd.readAsText(f);e.target.value='';}
+function resetAll(){if(confirm('Clear all data on this device? Export a backup first if you want to keep it.')){S=blank();save();renderAll();toast('Cleared');}}
+
+function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();}
+renderAll();
+</script>
+</body>
+</html>
