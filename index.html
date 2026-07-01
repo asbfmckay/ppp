@@ -7,28 +7,26 @@
 <title>PPP · Household Plan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --plum:#3B2156; --plum-deep:#2A1740; --plum-soft:#5A3E7A;
-    --amber:#E29A2C; --amber-soft:#F4D9A6;
-    --paper:#FBF6EE; --card:#FFFFFF; --line:#EBE3D6;
-    --ink:#2B2433; --muted:#8A8295; --good:#3F8E62; --bad:#C0593F;
-    --r:16px; --sh:0 1px 2px rgba(43,36,51,.04), 0 8px 24px rgba(43,36,51,.06);
+    --plum:#3B2156; --plum-deep:#2A1740; --plum-soft:#5A3E7A; --plum-wash:#F1ECF8;
+    --amber:#D85A30; --amber-soft:#F5C4B3;
+    --paper:#F8F7F4; --card:#FFFFFF; --line:#E9E6DF;
+    --ink:#1D1B24; --muted:#84807A; --good:#3F8E62; --bad:#A32D2D;
+    --r:10px; --sh:0 1px 2px rgba(29,27,36,.03);
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
-  body{font-family:'Poppins',-apple-system,system-ui,sans-serif;background:var(--paper);
-    color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:84px}
-  h1,h2,h3,.disp{font-family:'Fraunces','Poppins',serif}
+  body{font-family:'Manrope',-apple-system,system-ui,sans-serif;background:var(--paper);
+    color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:84px;font-feature-settings:'tnum' 1}
+  h1,h2,h3,.disp{font-family:'Manrope',-apple-system,system-ui,sans-serif;font-weight:700;letter-spacing:-.015em}
   button{font-family:inherit;cursor:pointer}
   input,textarea,select{font-family:inherit}
   a{color:inherit}
 
   header{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);
-    color:#fff;padding:22px 20px 26px;position:relative;overflow:hidden}
-  header::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
-    border:2px solid rgba(255,255,255,.08);border-radius:50%}
+    color:#fff;padding:18px 20px 20px;position:relative;overflow:hidden}
   .roundel{display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.22em;
     text-transform:uppercase;color:var(--amber-soft);font-weight:600}
   .roundel b{width:6px;height:6px;background:var(--amber);border-radius:50%;display:inline-block}
@@ -38,38 +36,38 @@
     border-radius:8px;padding:4px 9px;font-size:13px;font-weight:500;max-width:190px}
   .who input::placeholder{color:rgba(255,255,255,.5)}
 
-  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);
-    backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;z-index:50;
+  nav{position:fixed;bottom:0;left:0;right:0;background:#fff;
+    border-top:1px solid var(--line);display:flex;z-index:50;
     padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
   nav button{position:relative;flex:1;background:none;border:none;padding:8px 2px 6px;color:var(--muted);
     font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:10px}
-  nav button .ic{font-size:18px;line-height:1}
-  nav button.on{color:var(--plum)}
+  nav button .ic{display:flex;align-items:center;justify-content:center;line-height:1}
+  nav button.on{color:var(--plum);background:var(--amber-soft)}
 
-  main{max-width:680px;margin:0 auto;padding:20px 16px 8px}
+  main{max-width:920px;margin:0 auto;padding:18px 20px 8px}
   .view{display:none;animation:rise .35s ease}
   .view.on{display:block}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);font-weight:600;margin:0 0 4px}
-  .view > h2{font-size:23px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
-  .lede{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin:0 0 3px}
+  .view > h2{font-size:22px;font-weight:800;margin:0 0 3px;letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:13.5px;margin:0 0 14px}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-    padding:18px;box-shadow:var(--sh);margin-bottom:14px}
+    padding:15px 16px;box-shadow:var(--sh);margin-bottom:10px}
   label.fld{display:block;font-size:12px;font-weight:600;color:var(--plum-soft);margin:0 0 5px}
   textarea,input.txt,select.txt{width:100%;border:1px solid var(--line);border-radius:10px;
-    padding:10px 12px;font-size:14px;background:#FCFAF6;color:var(--ink);resize:vertical}
+    padding:10px 12px;font-size:14px;background:#F1EFEA;color:var(--ink);resize:vertical}
   textarea:focus,input:focus,select:focus{outline:none;border-color:var(--amber);background:#fff;
-    box-shadow:0 0 0 3px rgba(226,154,44,.14)}
+    box-shadow:0 0 0 3px rgba(216,90,48,.14)}
   textarea{min-height:70px;line-height:1.45}
 
   .pillar{margin-bottom:14px}
   .pillar .top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
   .num{flex:none;width:34px;height:34px;border-radius:10px;background:var(--plum);color:#fff;
-    font-family:'Fraunces',serif;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center}
+    font-family:'Manrope',sans-serif;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center}
   .pillar .top h3{margin:0;font-size:16px;font-weight:600}
-  .pillar .top small{display:block;font-family:'Poppins';font-weight:400;font-size:11.5px;color:var(--muted)}
+  .pillar .top small{display:block;font-family:'Manrope';font-weight:400;font-size:11.5px;color:var(--muted)}
 
   .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .vgrid input{padding:8px 11px}
@@ -79,14 +77,14 @@
   .ovrow{display:flex;align-items:center;gap:10px}
   .ovrow .nm{flex:none;width:96px;font-size:12px;font-weight:600;color:var(--plum-soft)}
   .ovbar{flex:1;height:8px;border-radius:6px;background:var(--line);overflow:hidden}
-  .ovbar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#d98520);border-radius:6px}
+  .ovbar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#a8431f);border-radius:6px}
   .ovrow .pc{flex:none;width:40px;text-align:right;font-size:12px;font-weight:700;color:var(--plum);font-variant-numeric:tabular-nums}
 
   .pillar-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     color:var(--plum);background:var(--amber-soft);padding:3px 9px;border-radius:20px;margin-bottom:10px}
 
   /* ---- Goal card ---- */
-  .goal{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#FCFAF6}
+  .goal{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#F1EFEA}
   .goal .row1{display:flex;gap:8px;margin-bottom:8px;align-items:center}
   .goal .row1 input{flex:1;border:none;background:none;font-weight:600;font-size:14px;padding:2px 0}
   .goal .row1 input:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
@@ -119,7 +117,7 @@
   .smart b{color:var(--plum-soft)}
 
   /* ---- Habit card ---- */
-  .habit{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#FCFAF6}
+  .habit{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#F1EFEA}
   .habit.arch{opacity:.55}
   .habit .hh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   .habit .hh input.nm{border:none;background:none;font-weight:600;font-size:14px;padding:2px 0;flex:1}
@@ -162,7 +160,7 @@
   .stat .v{font-weight:700;font-variant-numeric:tabular-nums}
   .big{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:12px;border-top:2px solid var(--line)}
   .big .lbl{font-size:13px;color:var(--muted);font-weight:600}
-  .big .amt{font-family:'Fraunces',serif;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+  .big .amt{font-family:'Manrope',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .pos{color:var(--good)} .neg{color:var(--bad)}
   .li{display:flex;gap:8px;margin-bottom:7px;align-items:center}
   .li input.name{flex:1}
@@ -192,7 +190,7 @@
   /* chain view */
   .hero{display:flex;align-items:baseline;gap:6px;margin:2px 0 4px;flex-wrap:wrap}
   .hero .em{font-size:16px;align-self:center}
-  .hero .big{font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:var(--plum);font-variant-numeric:tabular-nums}
+  .hero .big{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--plum);font-variant-numeric:tabular-nums}
   .hero .lbl{font-size:12px;color:var(--muted);font-weight:600}
   .skybadge{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:#fff;background:var(--plum-soft);padding:3px 8px;border-radius:20px;margin-left:2px}
@@ -221,9 +219,9 @@
   .conn .rowck input{accent-color:var(--amber);width:16px;height:16px}
 
   /* guide */
-  .acc .item{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden;box-shadow:var(--sh)}
+  .acc .item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
   .acc .hd{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;padding:14px 16px;font-weight:600;font-size:14px;color:var(--ink)}
-  .acc .hd .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--amber-soft);color:var(--plum);font-family:'Fraunces',serif;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .acc .hd .n{flex:none;width:26px;height:26px;border-radius:8px;background:var(--amber-soft);color:var(--plum);font-family:'Manrope',sans-serif;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}
   .acc .hd .chev{margin-left:auto;color:var(--muted);transition:transform .2s}
   .acc .item.open .chev{transform:rotate(90deg)}
   .acc .bd{display:none;padding:2px 16px 16px;font-size:13.5px;color:var(--ink);line-height:1.6}
@@ -233,7 +231,7 @@
   .acc .bd ol,.acc .bd ul{margin:0 0 10px;padding-left:20px}
   .acc .bd li{margin-bottom:7px}
   .acc .bd b{color:var(--plum)}
-  .callout{background:#FBF1DD;border:1px solid var(--amber-soft);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7a5a1e;margin:10px 0;line-height:1.5}
+  .callout{background:var(--plum-wash);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--plum-deep);margin:10px 0;line-height:1.5}
   .callout.warn{background:#FBEBE6;border-color:#F0C4B5;color:#9a3f24}
   .callout b{color:inherit}
   .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#F1ECE2;border-radius:5px;padding:1px 5px;color:var(--plum-deep);word-break:break-word}
@@ -242,6 +240,73 @@
   .codeblock .cp:hover{background:rgba(255,255,255,.3)}
 
   .habit input.psn{width:84px;font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:20px;padding:4px 9px;background:#fff;color:var(--plum-soft)}
+
+  /* ---- Buxfer dashboard ---- */
+  .bx-hero{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);border-radius:var(--r);
+    padding:18px 20px 20px;margin-bottom:10px;color:#fff;position:relative;overflow:hidden}
+  .bx-hero .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:6px}
+  .bx-hero .val{font-family:'Manrope',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.02em}
+  .bx-hero .sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:4px}
+  .bx-hero .row{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
+  .bx-hero .row .v{font-size:16px;font-weight:600}
+  .bx-hero .row .l{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+  .bx-connect{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:14px}
+  .bx-connect .ic{font-size:26px;margin-bottom:8px}
+  .bx-connect h3{margin:0 0 6px;font-size:16px}
+  .bx-connect p{color:var(--muted);font-size:13px;margin:0 0 14px;line-height:1.5}
+  .bx-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .bx-status .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+  .bx-status.off .dot{background:var(--bad)}
+  .bx-groupname{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-soft);margin:14px 0 8px}
+  .bx-acctgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .bx-acct{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#F1EFEA}
+  .acct-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+  .bx-acct-icon{width:24px;height:24px;border-radius:7px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--plum);flex-shrink:0}
+  .bx-acct .t{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .bx-acct .n{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+  .bx-acct .b{font-family:'Manrope',sans-serif;font-size:17px;font-weight:800}
+  .bx-alert{display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:10px;margin-bottom:8px;font-size:12.5px;line-height:1.5}
+  .bx-alert.danger{background:#FCEBEB;color:#A32D2D}
+  .bx-alert.warning{background:#FAECE7;color:#993C1D}
+  .bx-alert.ok{background:#EAF3E4;color:#2f6b47}
+  .bx-alert.info{background:var(--plum-wash);color:var(--plum-deep)}
+  .bx-goal{display:flex;align-items:center;gap:12px;padding:10px;background:#F1EFEA;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+  .bx-goal .gi{flex:1;min-width:0}
+  .bx-goal .gn{font-size:13px;font-weight:600}
+  .bx-goal .gs{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .bx-goal .del{margin-left:auto;flex:none}
+  .bx-ring{--p:0;width:52px;height:52px;border-radius:50%;flex:none;
+    background:conic-gradient(var(--amber) calc(var(--p)*1%), var(--line) 0);display:flex;align-items:center;justify-content:center;position:relative}
+  .bx-ring::before{content:"";position:absolute;inset:5px;background:#F1EFEA;border-radius:50%}
+  .bx-ring span{position:relative;font-weight:700;font-size:12px;color:var(--plum)}
+  .bx-goaledit{display:grid;grid-template-columns:2fr 1fr 1.4fr auto;gap:6px;margin-bottom:8px;align-items:center}
+  .bx-goaledit input,.bx-goaledit select{font-size:12px;padding:8px 9px}
+  .bx-tx{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
+  .bx-tx:last-child{border-bottom:none}
+  .bx-tx .d{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bx-tx .m{color:var(--muted);font-size:11px}
+  .bx-tx .a{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+  .bx-tx .a.pos{color:var(--good)} .bx-tx .a.neg{color:var(--ink)}
+  .bx-chat{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--sh)}
+  .bx-chat-top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--plum)}
+  .bx-chat-body{padding:12px 14px;max-height:280px;overflow-y:auto}
+  .bx-msg{margin-bottom:12px}
+  .bx-msg .w{font-size:10.5px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .bx-msg .b{font-size:13px;line-height:1.6;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#F1EFEA}
+  .bx-chips{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px}
+  .bx-chip{background:#F1EFEA;border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:11.5px;color:var(--plum-soft);cursor:pointer}
+  .bx-chip:hover{border-color:var(--amber);color:var(--amber)}
+  .bx-ask-row{padding:11px 14px;border-top:1px solid var(--line);display:flex;gap:8px}
+  .bx-ask-row input{flex:1;font-size:13px}
+  .bx-ask-row button{background:var(--plum);color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:13px;font-weight:600}
+  .bx-cf{display:flex;gap:5px;align-items:flex-end;height:100px;margin-bottom:6px}
+  .bx-cf-m{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .bx-cf-pair{width:100%;display:flex;gap:2px;align-items:flex-end;height:82px}
+  .bx-cf-bar{flex:1;border-radius:3px 3px 0 0}
+  .bx-cf-lbl{font-size:9px;color:var(--muted)}
+  .bx-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px}
+  .bx-legend span{display:inline-flex;align-items:center;gap:4px}
+  .bx-dot{width:9px;height:9px;border-radius:2px;display:inline-block}
   .psnbadge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.03em;
     color:var(--plum);background:var(--amber-soft);padding:3px 8px;border-radius:20px;margin-left:2px}
   .umrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
@@ -339,6 +404,13 @@
       <div class="scorebox"><div class="ring" id="scoreRing"><span id="scoreRingT">0</span></div>
         <div><input class="txt" type="number" min="0" max="44" data-bind="money.score" id="scoreIn"> <span class="o">/ 44</span>
           <p class="hint" style="margin-top:6px">Score yourself against the full PPP checklist, then track it over time.</p></div></div></div>
+
+    <h3 style="margin:20px 0 4px;font-size:16px">Live from Buxfer</h3>
+    <p class="hint" style="margin:0 0 12px">Real balances, transactions and budgets — pulled straight from Buxfer, nothing to re-type. Buxfer stays the ledger; this is the view on top of it.</p>
+    <div id="bxWrap"></div>
+
+    <h3 style="margin:22px 0 4px;font-size:16px">Manual backup entry</h3>
+    <p class="hint" style="margin:0 0 12px">Keep this filled in as a fallback, or if you'd rather not connect Buxfer. Once Buxfer is connected, the live figures above are the ones that matter.</p>
     <div class="card"><h3 style="margin:0 0 12px;font-size:16px">Monthly budget</h3>
       <div class="seg"><button class="on" data-money="income" onclick="moneyTab('income')">Income</button>
         <button data-money="nondisc" onclick="moneyTab('nondisc')">Essentials</button>
@@ -352,7 +424,7 @@
       <div class="stat" style="margin-top:12px"><span>Total assets</span><span class="v" id="totAssets">$0</span></div>
       <div class="stat"><span>Total liabilities</span><span class="v" id="totLiab">$0</span></div>
       <div class="big"><span class="lbl">Net worth</span><span class="amt" id="netWorth">$0</span></div></div>
-    <p class="hint">This snapshot leaves out forecasting, interest and retirement modelling — for those, keep the full PPP Excel tool. Not financial advice.</p>
+    <p class="hint">Not financial advice — for retirement, interest and loan modelling, keep the full PPP Excel tool.</p>
   </section>
 
   <!-- MORE -->
@@ -443,6 +515,18 @@
       </div>
 
       <div class="item">
+        <button class="hd" onclick="accToggle(this)"><span class="n">$</span>Connections · Buxfer<span class="chev">›</span></button>
+        <div class="bd conn">
+          <p class="hint" style="margin:0 0 12px">Pull live accounts, transactions and budgets from Buxfer via a Cloudflare Worker that holds your Buxfer login as a secret. Can be the same Worker as Skylight, or a separate one — either works, as long as it exposes the Buxfer routes.</p>
+          <input class="txt" id="bxUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.buxfer.url=this.value;save()">
+          <input class="txt" id="bxKey" placeholder="App key (matches Worker secret)" oninput="S.buxfer.key=this.value;save()">
+          <div class="syncbar"><button class="syncbtn" onclick="syncBuxfer()">⟳ Sync now</button><span class="lastsync" id="bxLastSync"></span></div>
+          <p class="hint">Your Buxfer email and password are never stored in this app — only in the Worker's encrypted secrets. This connection is read-only; nothing here can move money or edit Buxfer data.</p>
+        </div>
+      </div>
+
+
+      <div class="item">
         <button class="hd" onclick="accToggle(this)"><span class="n">💾</span>Back up &amp; share<span class="chev">›</span></button>
         <div class="bd">
           <p class="hint" style="margin:0 0 10px">Everything stays on this device. Export a file to back up, move devices, or share with your support crew.</p>
@@ -463,16 +547,42 @@
 </main>
 
 <nav>
-  <button class="on" data-tab="plan" onclick="go('plan')"><span class="ic">◎</span>Plan</button>
-  <button data-tab="reset" onclick="go('reset')"><span class="ic">⟳</span>Reset</button>
-  <button data-tab="goals" onclick="go('goals')"><span class="ic">◈</span>Goals</button>
-  <button data-tab="habits" onclick="go('habits')"><span class="ic">✓</span>Habits</button>
-  <button data-tab="money" onclick="go('money')"><span class="ic">$</span>Money</button>
-  <button data-tab="more" onclick="go('more')"><span class="navdot" id="moreDot" style="display:none"></span><span class="ic">⋯</span>More</button>
+  <button class="on" data-tab="plan" onclick="go('plan')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg></span>Plan</button>
+  <button data-tab="reset" onclick="go('reset')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 5.3M20 6v5h-5"/></svg></span>Reset</button>
+  <button data-tab="goals" onclick="go('goals')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/></svg></span>Goals</button>
+  <button data-tab="habits" onclick="go('habits')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg></span>Habits</button>
+  <button data-tab="money" onclick="go('money')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3H5"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 1 0 0 4h5"/></svg></span>Money</button>
+  <button data-tab="more" onclick="go('more')"><span class="navdot" id="moreDot" style="display:none"></span><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/></svg></span>More</button>
 </nav>
 <div class="toast" id="toast"></div>
 
 <script>
+const ICONS={
+  compass:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2 5.3M20 6v5h-5"/>',
+  target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/>',
+  check:'<path d="M4 12l5 5L20 6"/>',
+  wallet:'<path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3H5"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 1 0 0 4h5"/>',
+  dots:'<circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/>',
+  building:'<path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M14 9h5a1 1 0 0 1 1 1v11"/><path d="M9 8h.01M9 12h.01M9 16h.01"/><path d="M4 21h16"/>',
+  piggy:'<path d="M4 10a4 4 0 0 1 4-4h4l2-2 1 2h1a3 3 0 0 1 3 3v1l2 1-2 1v2a3 3 0 0 1-3 3v2H9v-2a4 4 0 0 1-4-4z"/><circle cx="8.5" cy="11.5" r=".6"/>',
+  card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
+  bank:'<path d="M4 10l8-5 8 5"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 19h18"/>',
+  coin:'<circle cx="12" cy="12" r="8"/><path d="M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.5-1 1.2-2.5 1.5-2.5.6-2.5 1.5 1 1.5 2.5 1.5 2.5-.5 2.5-1.5"/>',
+  alertCircle:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.01"/>',
+  alertTriangle:'<path d="M12 3l10 18H2z"/><path d="M12 9v5M12 16.5v.01"/>',
+  infoCircle:'<circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7.5v.01"/>',
+  checkCircle:'<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.3 2.3L16 9.5"/>',
+  sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  arrowUpRight:'<path d="M7 17L17 7M8 7h9v9"/>',
+  arrowUp:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  arrowDown:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+};
+function icon(name,size){
+  const s=size||16;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-${Math.round(s*0.19)}px;flex-shrink:0" aria-hidden="true">${ICONS[name]||''}</svg>`;
+}
+
 const PILLARS=[
   {k:'moral',n:'Moral',d:'The backbone — get into the clear, stay accountable'},
   {k:'family',n:'Family',d:'Put your family first; restore trust, take an interest'},
@@ -483,7 +593,7 @@ const PILLARS=[
 const TF=['Quarterly','Annual','3-Year'];
 const CAD=[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']];
 const HOUSEHOLD=['Andrew','Bronnia','Gordon','Albert'];
-const PERSON_COLORS={Andrew:'#5A3E7A',Bronnia:'#C2607A',Gordon:'#3F8E62',Albert:'#E29A2C'};
+const PERSON_COLORS={Andrew:'#5A3E7A',Bronnia:'#C2607A',Gordon:'#3F8E62',Albert:'#2E7D9A'};
 const openHabits=new Set();
 const genId=()=>'h'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const KEYS=['pppHousehold_v1'];   // newest first — prepend a new key on structural changes
@@ -501,8 +611,10 @@ let S=load();
 function blank(){
   const g={},r={};PILLARS.forEach(p=>{g[p.k]=[];r[p.k]=''});
   return {version:APP_VERSION,profile:'',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
-    reset:r,goals:g,habits:[],money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[]},
-    conn:{url:'',key:'',routinesOnly:true,lastSync:''},meta:{lastBackup:''}};
+    reset:r,goals:g,habits:[],money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[]},
+    conn:{url:'',key:'',routinesOnly:true,lastSync:''},
+    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]}},
+    meta:{lastBackup:''}};
 }
 function normalise(s){
   s=Object.assign(blank(),s||{});
@@ -511,6 +623,10 @@ function normalise(s){
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=h.person||'';h.id=h.id||genId();});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]}},s.buxfer||{});
+  s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
+  s.money.goals=s.money.goals||[];
+  s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';});
   s.meta=Object.assign({lastBackup:''},s.meta||{});
   s.version=APP_VERSION;
   return s;
@@ -813,6 +929,305 @@ function renderConn(){
   const k=document.getElementById('connKey');if(k&&document.activeElement!==k)k.value=c.key||'';
   const r=document.getElementById('connRO');if(r)r.checked=c.routinesOnly!==false;
   document.querySelectorAll('.lastsync').forEach(e=>e.textContent=c.lastSync?('Last sync: '+new Date(c.lastSync).toLocaleString()):'Not synced yet');
+  const b=S.buxfer||{};
+  const bu=document.getElementById('bxUrl');if(bu&&document.activeElement!==bu)bu.value=b.url||'';
+  const bk=document.getElementById('bxKey');if(bk&&document.activeElement!==bk)bk.value=b.key||'';
+  const bs=document.getElementById('bxLastSync');if(bs)bs.textContent=b.lastSync?('Last sync: '+new Date(b.lastSync).toLocaleString()):'Not synced yet';
+}
+
+/* BUXFER */
+let bxDemoMode=false;
+const BX_DEMO_CACHE={
+  accounts:[
+    {id:'1',name:'CommBank Offset',type:'Savings',balance:48200},
+    {id:'2',name:'CommBank Transaction',type:'Everyday',balance:3840},
+    {id:'3',name:'Suncorp Savings',type:'Savings',balance:22500},
+    {id:'4',name:'Home Loan (NAB)',type:'Loan',balance:-387000},
+    {id:'5',name:'Investment Property — Brisbane',type:'Property',balance:620000},
+    {id:'6',name:'Investment Property — Gold Coast',type:'Property',balance:540000},
+    {id:'7',name:'AustralianSuper',type:'Super',balance:87400},
+    {id:'8',name:'PayPal',type:'Everyday',balance:340},
+    {id:'9',name:'ANZ Credit Card',type:'Credit',balance:-4000}
+  ],
+  transactions:[
+    {date:'2026-06-28',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-134},
+    {date:'2026-06-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
+    {date:'2026-06-26',description:'Council Rates Q2',accountName:'CommBank Transaction',amount:-640},
+    {date:'2026-06-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
+    {date:'2026-06-23',description:'BP Petrol',accountName:'CommBank Transaction',amount:-89},
+    {date:'2026-06-20',description:'Strata Levy — GC',accountName:'CommBank Transaction',amount:-380},
+    {date:'2026-06-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600},
+    {date:'2026-06-15',description:'AGL Electricity',accountName:'CommBank Transaction',amount:-240},
+    {date:'2026-05-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
+    {date:'2026-05-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
+    {date:'2026-05-20',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-156},
+    {date:'2026-04-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
+    {date:'2026-04-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
+    {date:'2026-04-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600}
+  ],
+  budgets:[
+    {name:'Groceries',limit:800,currentPeriod:620},
+    {name:'Dining & Takeaway',limit:300,currentPeriod:290},
+    {name:'Utilities',limit:250,currentPeriod:240},
+    {name:'Transport',limit:400,currentPeriod:210},
+    {name:'Property Expenses',limit:1200,currentPeriod:1380}
+  ]
+};
+const BX_DEMO_GOALS=[
+  {id:'demo1',label:'Savings buffer (Suncorp)',target:40000,accountId:'3'},
+  {id:'demo2',label:'Emergency fund (CommBank)',target:15000,accountId:'1'}
+];
+function loadBxDemo(){bxDemoMode=true;renderBuxfer();toast('Showing demo data — nothing is saved or synced');}
+function exitBxDemo(){bxDemoMode=false;renderBuxfer();}
+const AUD=n=>(n<0?'-$':'$')+Math.abs(Math.round(n||0)).toLocaleString();
+const AUDc=n=>{const a=Math.abs(n||0),s=n<0?'-':'';
+  if(a>=1000000)return s+'$'+(Math.round(a/100000)/10)+'M';
+  if(a>=1000)return s+'$'+Math.round(a/1000)+'k';
+  return AUD(n);};
+let bxChat=[],bxAsking=false;
+
+function bxHeaders(){return S.buxfer.key?{'Authorization':'Bearer '+S.buxfer.key}:{};}
+async function syncBuxfer(){
+  const c=S.buxfer;
+  if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer');go('more');return;}
+  document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=true);
+  try{
+    const base=c.url.replace(/\/+$/,'');
+    const [ar,tr,br]=await Promise.all([
+      fetch(base+'/accounts',{headers:bxHeaders()}),
+      fetch(base+'/transactions?since='+todayISO(new Date(Date.now()-1000*60*60*24*180)),{headers:bxHeaders()}),
+      fetch(base+'/budgets',{headers:bxHeaders()})
+    ]);
+    if(!ar.ok||!tr.ok||!br.ok)throw new Error('HTTP '+[ar.status,tr.status,br.status].join('/'));
+    const aj=await ar.json(),tj=await tr.json(),bj=await br.json();
+    c.cache.accounts=aj.accounts||[];c.cache.transactions=tj.transactions||[];c.cache.budgets=bj.budgets||[];
+    c.lastSync=new Date().toISOString();save();
+    renderBuxfer();renderConn();
+    toast('Synced '+c.cache.accounts.length+' accounts');
+  }catch(e){toast('Buxfer sync failed: '+e.message);}
+  finally{document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=false);}
+}
+
+function bxAccountType(a){
+  const t=(a.type||'').toLowerCase(),n=(a.name||'').toLowerCase();
+  if(t.includes('asset')||n.includes('propert')||n.includes('house'))return 'Property';
+  if(t.includes('saving'))return 'Savings';
+  if(t.includes('check')||t.includes('transact')||n.includes('paypal'))return 'Everyday';
+  if(t.includes('loan')||t.includes('mortgage')||t.includes('credit'))return 'Loans & credit';
+  if(n.includes('super')||t.includes('super'))return 'Superannuation';
+  return 'Other';
+}
+function bxGroupIcon(g){
+  return {'Property':'building','Savings':'piggy','Everyday':'wallet',
+    'Loans & credit':'card','Superannuation':'bank','Other':'coin'}[g]||'coin';
+}
+function bxAlerts(){
+  const {accounts,transactions,budgets}=bxDemoMode?BX_DEMO_CACHE:S.buxfer.cache;
+  const alerts=[];
+  budgets.forEach(b=>{
+    const spent=parseFloat(b.currentPeriod)||0,limit=parseFloat(b.limit)||0;
+    if(limit>0){const pct=spent/limit*100;
+      if(pct>=100)alerts.push({t:'danger',icon:'alertCircle',m:`Budget overrun: "${b.name}" is at ${Math.round(pct)}% (${AUD(spent)} of ${AUD(limit)}).`});
+      else if(pct>=80)alerts.push({t:'warning',icon:'alertTriangle',m:`"${b.name}" is at ${Math.round(pct)}% of budget — worth a look.`});}
+  });
+  accounts.forEach(a=>{
+    const bal=parseFloat(a.balance)||0,type=bxAccountType(a);
+    if(bal<0&&type!=='Loans & credit')alerts.push({t:'warning',icon:'alertTriangle',m:`"${a.name}" has a negative balance (${AUD(bal)}) — possible overdraft.`});
+  });
+  [...transactions].filter(t=>Math.abs(parseFloat(t.amount)||0)>2000).slice(0,5).forEach(t=>{
+    alerts.push({t:'info',icon:'infoCircle',m:`Large transaction ${t.date}: "${t.description}" for ${AUD(Math.abs(parseFloat(t.amount)||0))}.`});
+  });
+  if(!alerts.length)alerts.push({t:'ok',icon:'checkCircle',m:'Everything looks healthy — no issues detected.'});
+  return alerts;
+}
+function bxMonthly(transactions){
+  const m={};
+  transactions.forEach(t=>{
+    const k=(t.date||'').slice(0,7);if(!k)return;
+    const amt=parseFloat(t.amount)||0;m[k]=m[k]||{inc:0,exp:0};
+    if(amt>0)m[k].inc+=amt;else m[k].exp+=Math.abs(amt);
+  });
+  return m;
+}
+function renderBuxfer(){
+  const w=document.getElementById('bxWrap');if(!w)return;
+  const c=S.buxfer;
+  const {accounts,transactions,budgets}=bxDemoMode?BX_DEMO_CACHE:c.cache;
+  const goals=bxDemoMode?BX_DEMO_GOALS:S.money.goals;
+  if(!accounts.length){
+    w.innerHTML=`<div class="bx-connect"><div class="ic" style="color:var(--plum-soft);margin-bottom:8px">${icon('wallet',26)}</div><h3>Connect your Buxfer account</h3>
+      <p>See real balances, cashflow and budgets here instead of typing them in twice. Set up the connection once in <b>More → Connections · Buxfer</b>.</p>
+      <button class="syncbtn" onclick="go('more')">Set up Buxfer connection</button>
+      <p class="hint" style="margin-top:12px"><a href="#" onclick="event.preventDefault();loadBxDemo()" style="color:var(--plum-soft);font-weight:600;text-decoration:none">Or preview with demo data →</a></p></div>`;
+    return;
+  }
+  let demoBanner='';
+  if(bxDemoMode){
+    demoBanner=`<div class="bx-alert info" style="align-items:center"><span style="flex:1"><b>Demo data</b> — this is a preview, not your real Buxfer account. Nothing here is saved.</span>
+      <button class="syncbtn" style="padding:6px 12px;font-size:12px" onclick="exitBxDemo()">Exit demo</button></div>`;
+  }
+  const assets=accounts.filter(a=>(parseFloat(a.balance)||0)>0).reduce((s,a)=>s+parseFloat(a.balance),0);
+  const liab=accounts.filter(a=>(parseFloat(a.balance)||0)<0).reduce((s,a)=>s+Math.abs(parseFloat(a.balance)),0);
+  const nw=assets-liab;
+
+  let html=demoBanner+`<div class="bx-status"><span class="dot"></span>Connected · ${accounts.length} accounts
+      ${(!bxDemoMode&&c.lastSync)?' · synced '+new Date(c.lastSync).toLocaleString():''}</div>`;
+
+  html+=`<div class="bx-hero"><div class="lbl">Net worth</div><div class="val">${AUD(nw)}</div>
+      <div class="sub">Across ${accounts.length} Buxfer accounts</div>
+      <div class="row"><div><div class="v">${AUDc(assets)}</div><div class="l">Total assets</div></div>
+        <div><div class="v">${AUDc(liab)}</div><div class="l">Total liabilities</div></div></div></div>`;
+
+  // Accounts grouped
+  const groups={};
+  accounts.forEach(a=>{const g=bxAccountType(a);(groups[g]=groups[g]||[]).push(a);});
+  const order=['Property','Savings','Everyday','Loans & credit','Superannuation','Other'];
+  html+='<div class="card">';
+  order.filter(g=>groups[g]&&groups[g].length).forEach(g=>{
+    html+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
+    groups[g].forEach(a=>{
+      const bal=parseFloat(a.balance)||0;
+      html+=`<div class="bx-acct"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
+        <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // Budgets
+  if(budgets.length){
+    html+='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Budgets (from Buxfer)</h3>';
+    budgets.forEach(b=>{
+      const spent=parseFloat(b.currentPeriod)||0,limit=parseFloat(b.limit)||0;
+      const pct=limit>0?Math.min(100,Math.round(spent/limit*100)):0;
+      const col=pct>=100?'var(--bad)':pct>=80?'var(--amber)':'var(--good)';
+      html+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+        <span>${b.name}</span><span style="font-weight:700;color:${col}">${AUD(spent)} / ${AUD(limit)}</span></div>
+        <div class="ovbar" style="height:6px"><i style="width:${pct}%;background:${col}"></i></div></div>`;
+    });
+    html+='</div>';
+  }
+
+  // Cashflow chart
+  const monthly=bxMonthly(transactions);
+  const keys=Object.keys(monthly).sort().slice(-6);
+  if(keys.length){
+    const maxV=Math.max(...keys.map(k=>Math.max(monthly[k].inc,monthly[k].exp)),1);
+    html+='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Income vs expenses</h3><div class="bx-cf">';
+    keys.forEach(k=>{
+      const {inc,exp}=monthly[k];
+      const ih=Math.max(2,(inc/maxV)*82),eh=Math.max(2,(exp/maxV)*82);
+      const lbl=new Date(k+'-01').toLocaleString('en-AU',{month:'short'});
+      html+=`<div class="bx-cf-m"><div class="bx-cf-pair">
+        <div class="bx-cf-bar" style="height:${ih}px;background:var(--plum)"></div>
+        <div class="bx-cf-bar" style="height:${eh}px;background:var(--amber-soft)"></div>
+        </div><div class="bx-cf-lbl">${lbl}</div></div>`;
+    });
+    html+=`</div><div class="bx-legend"><span><span class="bx-dot" style="background:var(--plum)"></span>Income</span>
+      <span><span class="bx-dot" style="background:var(--amber-soft)"></span>Expenses</span></div></div>`;
+  }
+
+  // Goals linked to Buxfer accounts
+  html+='<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Savings goals</h3>';
+  html+='<p class="hint" style="margin:0 0 12px">Link a goal to a Buxfer account and its progress ring fills in on its own.</p>';
+  html+='<div id="bxGoalsList"></div>';
+  html+=`<div class="bx-goaledit">
+      <input class="txt" id="bxGoalLabel" placeholder="Goal — e.g. House deposit">
+      <input class="txt" id="bxGoalTarget" type="number" placeholder="Target $">
+      <select class="txt" id="bxGoalAccount">${accountOptions(accounts)}</select>
+      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addBxGoal()">+ Add</button>
+    </div></div>`;
+
+  // Alerts
+  html+='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Alerts</h3>';
+  bxAlerts().forEach(a=>{html+=`<div class="bx-alert ${a.t}"><span style="margin-top:1px">${icon(a.icon,16)}</span><span>${a.m}</span></div>`;});
+  html+='</div>';
+
+  // Ask AI
+  html+=`<div class="bx-chat">
+      <div class="bx-chat-top">✦ Ask about your finances</div>
+      <div class="bx-chat-body" id="bxChatBody"></div>
+      <div class="bx-chips" id="bxChipsWrap">
+        <button class="bx-chip" onclick="bxChip(this)">Have we paid the rates this quarter?</button>
+        <button class="bx-chip" onclick="bxChip(this)">Are we on track for our savings goals?</button>
+        <button class="bx-chip" onclick="bxChip(this)">Where are we overspending?</button>
+        <button class="bx-chip" onclick="bxChip(this)">Give me a net worth summary</button>
+      </div>
+      <div class="bx-ask-row"><input class="txt" id="bxQ" placeholder="Ask anything about your finances…" onkeydown="if(event.key==='Enter')askBuxfer()">
+        <button id="bxAskBtn" onclick="askBuxfer()">Ask ↗</button></div>
+    </div>`;
+
+  w.innerHTML=html;
+  renderBxGoals();
+  renderBxChat();
+}
+function accountOptions(accounts){
+  return '<option value="">— account (optional)</option>'+accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
+}
+function addBxGoal(){
+  if(bxDemoMode){toast('Exit demo mode to add real goals');return;}
+  const label=document.getElementById('bxGoalLabel').value.trim();
+  const target=parseFloat(document.getElementById('bxGoalTarget').value)||0;
+  const accountId=document.getElementById('bxGoalAccount').value;
+  if(!label||!target){toast('Add a label and a target amount');return;}
+  S.money.goals.push({id:genId(),label,target,accountId});save();renderBxGoals();
+  document.getElementById('bxGoalLabel').value='';document.getElementById('bxGoalTarget').value='';
+}
+function delBxGoal(id){if(bxDemoMode)return;S.money.goals=S.money.goals.filter(g=>g.id!==id);save();renderBxGoals();}
+function renderBxGoals(){
+  const w=document.getElementById('bxGoalsList');if(!w)return;
+  const accounts=bxDemoMode?BX_DEMO_CACHE.accounts:S.buxfer.cache.accounts;
+  const goals=bxDemoMode?BX_DEMO_GOALS:S.money.goals;
+  w.innerHTML='';
+  if(!goals.length){w.innerHTML='<p class="hint" style="margin:0 0 10px">No goals yet — add one below.</p>';return;}
+  goals.forEach(g=>{
+    const acct=accounts.find(a=>String(a.id)===String(g.accountId));
+    const cur=acct?parseFloat(acct.balance)||0:0;
+    const pct=g.target>0?Math.min(100,Math.round(cur/g.target*100)):0;
+    const row=document.createElement('div');row.className='bx-goal';
+    row.innerHTML=`<div class="bx-ring" style="--p:${pct}"><span>${pct}%</span></div>
+      <div class="gi"><div class="gn">${g.label}</div><div class="gs">${AUD(cur)} of ${AUD(g.target)}${acct?' · '+acct.name:''}</div></div>
+      <button class="del">×</button>`;
+    row.querySelector('.del').onclick=()=>delBxGoal(g.id);
+    w.appendChild(row);
+  });
+}
+function bxChip(el){document.getElementById('bxQ').value=el.textContent;askBuxfer();}
+async function askBuxfer(){
+  if(bxDemoMode){toast('Connect a real Buxfer account to use Ask AI');return;}
+  const q=document.getElementById('bxQ').value.trim();
+  if(!q||bxAsking)return;
+  if(!S.buxfer.url){toast('Add your Worker URL in More → Connections · Buxfer');return;}
+  document.getElementById('bxQ').value='';
+  const chips=document.getElementById('bxChipsWrap');if(chips)chips.style.display='none';
+  bxAsking=true;document.getElementById('bxAskBtn').textContent='…';
+  bxChat.push({role:'user',content:q});renderBxChat();
+
+  const {accounts,transactions,budgets}=S.buxfer.cache;
+  const acctCtx=accounts.map(a=>`${a.name} (${a.type||'account'}): ${AUD(a.balance)}`).join('\n');
+  const txCtx=transactions.slice(0,40).map(t=>`${t.date} | ${t.accountName||''} | ${t.description} | ${AUD(t.amount)}`).join('\n');
+  const budgetCtx=budgets.map(b=>`${b.name}: spent ${AUD(b.currentPeriod)} of ${AUD(b.limit)}`).join('\n');
+  const goalCtx=S.money.goals.map(g=>{const a=accounts.find(x=>String(x.id)===String(g.accountId));return `${g.label}: ${AUD(a?a.balance:0)} of ${AUD(g.target)}`;}).join('\n');
+  const context=`ACCOUNTS:\n${acctCtx||'None'}\n\nRECENT TRANSACTIONS:\n${txCtx||'None'}\n\nBUDGETS:\n${budgetCtx||'None'}\n\nGOALS:\n${goalCtx||'None'}`;
+
+  try{
+    const base=S.buxfer.url.replace(/\/+$/,'');
+    const res=await fetch(base+'/ask',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
+      body:JSON.stringify({question:q,context,history:bxChat.slice(0,-1)})});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    bxChat.push({role:'assistant',content:j.answer||'No response.'});
+  }catch(e){
+    bxChat.push({role:'assistant',content:'Could not reach the AI proxy on your Worker ('+e.message+'). Check the /ask route is deployed and the ANTHROPIC_API_KEY secret is set.'});
+  }
+  bxAsking=false;document.getElementById('bxAskBtn').textContent='Ask ↗';
+  renderBxChat();
+}
+function renderBxChat(){
+  const el=document.getElementById('bxChatBody');if(!el)return;
+  if(!bxChat.length){el.innerHTML='<p class="hint" style="margin:0">Ask anything — the Worker sends your real Buxfer data as context.</p>';return;}
+  el.innerHTML=bxChat.map(m=>`<div class="bx-msg"><div class="w">${m.role==='user'?'You':'Claude'}</div><div class="b">${m.content}</div></div>`).join('');
+  el.scrollTop=el.scrollHeight;
 }
 
 /* MONEY */
@@ -886,7 +1301,7 @@ function updateNudge(){
 }
 function dismissNudge(){reminderDismissed=true;updateNudge();}
 
-function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();renderBackupState();updateNudge();}
+function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();renderBuxfer();renderBackupState();updateNudge();}
 renderAll();
 </script>
 </body>
