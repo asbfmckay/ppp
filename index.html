@@ -27,10 +27,7 @@
 
   header{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);
     color:#fff;padding:18px 20px 20px;position:relative;overflow:hidden}
-  .roundel{display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.22em;
-    text-transform:uppercase;color:var(--amber-soft);font-weight:600}
-  .roundel b{width:6px;height:6px;background:var(--amber);border-radius:50%;display:inline-block}
-  header h1{margin:8px 0 2px;font-size:27px;font-weight:600;letter-spacing:-.01em}
+  header h1{margin:0 0 2px;font-size:26px;font-weight:800;letter-spacing:-.02em}
   .who{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.7);margin-top:4px}
   .who input{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;
     border-radius:8px;padding:4px 9px;font-size:13px;font-weight:500;max-width:190px}
@@ -337,9 +334,8 @@
 </head>
 <body>
 <header>
-  <div class="roundel"><b></b>Clarity · Hope · Confidence<b></b></div>
   <h1>Household Plan</h1>
-  <div class="who"><span>Plan for</span><input id="profile" placeholder="Name / household" maxlength="40"></div>
+  <div class="who"><span id="profile" style="font-weight:600;color:#fff">Andrew &amp; Bronnia McKay</span></div>
 </header>
 
 <main>
@@ -405,25 +401,7 @@
         <div><input class="txt" type="number" min="0" max="44" data-bind="money.score" id="scoreIn"> <span class="o">/ 44</span>
           <p class="hint" style="margin-top:6px">Score yourself against the full PPP checklist, then track it over time.</p></div></div></div>
 
-    <h3 style="margin:20px 0 4px;font-size:16px">Live from Buxfer</h3>
-    <p class="hint" style="margin:0 0 12px">Real balances, transactions and budgets — pulled straight from Buxfer, nothing to re-type. Buxfer stays the ledger; this is the view on top of it.</p>
     <div id="bxWrap"></div>
-
-    <h3 style="margin:22px 0 4px;font-size:16px">Manual backup entry</h3>
-    <p class="hint" style="margin:0 0 12px">Keep this filled in as a fallback, or if you'd rather not connect Buxfer. Once Buxfer is connected, the live figures above are the ones that matter.</p>
-    <div class="card"><h3 style="margin:0 0 12px;font-size:16px">Monthly budget</h3>
-      <div class="seg"><button class="on" data-money="income" onclick="moneyTab('income')">Income</button>
-        <button data-money="nondisc" onclick="moneyTab('nondisc')">Essentials</button>
-        <button data-money="disc" onclick="moneyTab('disc')">Lifestyle</button></div>
-      <div id="moneyLines"></div><button class="addbtn" id="addLine">+ Add line</button>
-      <div class="big"><span class="lbl">Monthly surplus / deficit</span><span class="amt" id="netFlow">$0</span></div></div>
-    <div class="card"><h3 style="margin:0 0 10px;font-size:16px">Net worth</h3>
-      <div class="seg" style="margin-bottom:10px"><button class="on" data-nw="assets" onclick="nwTab('assets')">Assets</button>
-        <button data-nw="liab" onclick="nwTab('liab')">Liabilities</button></div>
-      <div id="nwLines"></div><button class="addbtn" id="addNw">+ Add line</button>
-      <div class="stat" style="margin-top:12px"><span>Total assets</span><span class="v" id="totAssets">$0</span></div>
-      <div class="stat"><span>Total liabilities</span><span class="v" id="totLiab">$0</span></div>
-      <div class="big"><span class="lbl">Net worth</span><span class="amt" id="netWorth">$0</span></div></div>
     <p class="hint">Not financial advice — for retirement, interest and loan modelling, keep the full PPP Excel tool.</p>
   </section>
 
@@ -435,21 +413,6 @@
 
     <div class="acc">
       <div class="item open">
-        <button class="hd" onclick="accToggle(this)"><span class="n">▶</span>Quick start (5 minutes)<span class="chev">›</span></button>
-        <div class="bd">
-          <ol>
-            <li>Put your name (or household) at the top of the app.</li>
-            <li><b>Plan:</b> write a one-line mission and a few values.</li>
-            <li><b>Reset:</b> jot one honest line under each of the five pillars.</li>
-            <li><b>Goals:</b> add one goal to your most pressing pillar, with a milestone or two.</li>
-            <li><b>Habits:</b> add one daily habit and tap today's link in the chain.</li>
-            <li><b>More → Export backup</b> so you don't lose it.</li>
-          </ol>
-          <p>That's a working PPP. Deepen it over the coming weeks — this is a lifelong tool, not a one-sitting job.</p>
-        </div>
-      </div>
-
-      <div class="item">
         <button class="hd" onclick="accToggle(this)"><span class="n">1</span>The 6-step rollout<span class="chev">›</span></button>
         <div class="bd">
           <ol>
@@ -529,7 +492,7 @@
       <div class="item">
         <button class="hd" onclick="accToggle(this)"><span class="n">💾</span>Back up &amp; share<span class="chev">›</span></button>
         <div class="bd">
-          <p class="hint" style="margin:0 0 10px">Everything stays on this device. Export a file to back up, move devices, or share with your support crew.</p>
+          <p class="hint" style="margin:0 0 10px">Everything stays on this device by default. Export a file to back up manually, or turn on cloud auto-backup below to save to your own Worker automatically.</p>
           <p id="backupState" class="backupState">Never backed up on this device</p>
           <div class="toolbar">
             <button onclick="exportData()">⬇ Export backup</button>
@@ -538,6 +501,14 @@
           <div class="toolbar" style="margin-top:8px"><button onclick="window.print()">🖨 Print / save PDF</button>
             <button class="warn" onclick="resetAll()">Clear everything</button></div>
           <p class="hint" style="margin-top:10px">Tip: export after each review and keep the file in Drive/iCloud. On iPhone, <b>Add to Home Screen</b> helps the data persist. Clearing browser data for this site, or not opening it for a while on iOS Safari, can wipe local data — your exported files are the safe copy.</p>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+            <label class="fld" style="margin-bottom:8px">Cloud auto-backup</label>
+            <p class="hint" style="margin:0 0 10px">Uses the same Worker URL and app key you set up for Buxfer/Skylight above. Every change auto-saves there too, as a second copy off this device. Requires a one-time <code class="code">PPP_KV</code> binding on your Worker — see the setup guide.</p>
+            <label class="rowck"><input type="checkbox" id="cloudBackupToggle" onchange="S.buxfer.cloudBackup=this.checked;save();renderBackupState();updateNudge()"> Auto-backup to cloud on every change</label>
+            <p class="hint" id="cloudBackupState" style="margin:8px 0 10px">Not yet backed up to cloud</p>
+            <div class="toolbar"><button onclick="restoreFromCloud()">⬇ Restore from cloud backup</button></div>
+          </div>
         </div>
       </div>
     </div>
@@ -548,7 +519,7 @@
 
 <nav>
   <button class="on" data-tab="plan" onclick="go('plan')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/></svg></span>Plan</button>
-  <button data-tab="reset" onclick="go('reset')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 5.3M20 6v5h-5"/></svg></span>Reset</button>
+  <button data-tab="reset" onclick="go('reset')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reset</button>
   <button data-tab="goals" onclick="go('goals')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".5"/></svg></span>Goals</button>
   <button data-tab="habits" onclick="go('habits')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 6"/></svg></span>Habits</button>
   <button data-tab="money" onclick="go('money')"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3H5"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 1 0 0 4h5"/></svg></span>Money</button>
@@ -559,7 +530,7 @@
 <script>
 const ICONS={
   compass:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/>',
-  refresh:'<path d="M20 11a8 8 0 1 0-2 5.3M20 6v5h-5"/>',
+  refresh:'<path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
   target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/>',
   check:'<path d="M4 12l5 5L20 6"/>',
   wallet:'<path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3H5"/><path d="M3 7v10a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 1 0 0 4h5"/>',
@@ -610,10 +581,10 @@ let showArchived=false;
 let S=load();
 function blank(){
   const g={},r={};PILLARS.forEach(p=>{g[p.k]=[];r[p.k]=''});
-  return {version:APP_VERSION,profile:'',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
+  return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
     reset:r,goals:g,habits:[],money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[]},
     conn:{url:'',key:'',routinesOnly:true,lastSync:''},
-    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]}},
+    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},
     meta:{lastBackup:''}};
 }
 function normalise(s){
@@ -623,7 +594,7 @@ function normalise(s){
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=h.person||'';h.id=h.id||genId();});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
-  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]}},s.buxfer||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
   s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';});
@@ -652,7 +623,51 @@ function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
   try{localStorage.setItem(KEY,JSON.stringify(S));
     document.getElementById('saveState').textContent='Saved · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
   catch(e){document.getElementById('saveState').textContent='In-memory only (saving is blocked in this preview)';}
+  queueCloudBackup();
 },250);}
+let cloudBackupTimer;
+function queueCloudBackup(){
+  if(!S.buxfer||!S.buxfer.cloudBackup||!S.buxfer.url)return;
+  clearTimeout(cloudBackupTimer);
+  cloudBackupTimer=setTimeout(pushCloudBackup,2000);
+}
+async function pushCloudBackup(){
+  const c=S.buxfer;
+  if(!c.cloudBackup||!c.url)return;
+  try{
+    const base=c.url.replace(/\/+$/,'');
+    const res=await fetch(base+'/backup',{
+      method:'POST',
+      headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
+      body:JSON.stringify(S)
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    c.lastCloudBackup=j.savedAt||new Date().toISOString();
+    localStorage.setItem(KEY,JSON.stringify(S));
+    renderBackupState();
+  }catch(e){
+    const el=document.getElementById('cloudBackupState');
+    if(el)el.textContent='Cloud backup failed — will retry on next change ('+e.message+')';
+  }
+}
+async function restoreFromCloud(){
+  const c=S.buxfer;
+  if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer first');return;}
+  if(!confirm('Replace everything on this device with the latest cloud backup? This cannot be undone locally (your current data is not auto-saved first).'))return;
+  try{
+    const base=c.url.replace(/\/+$/,'');
+    const res=await fetch(base+'/backup',{headers:bxHeaders()});
+    if(res.status===404){toast('No cloud backup found yet — enable auto-backup and make a change first');return;}
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    const next=normalise(j.data);
+    S=next;save();renderAll();
+    toast('Restored from cloud backup ('+new Date(j.savedAt).toLocaleString()+')');
+  }catch(e){
+    toast('Restore failed: '+e.message);
+  }
+}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 function accToggle(btn){btn.parentElement.classList.toggle('open');}
 function copyCode(btn){const b=btn.parentElement.cloneNode(true);const x=b.querySelector('.cp');if(x)x.remove();
@@ -671,8 +686,6 @@ function bindSimple(){
     const path=el.dataset.bind.split('.');const obj=path.length>1?S[path[0]]:S;const key=path.length>1?path[1]:path[0];
     el.value=obj[key]??'';
     el.addEventListener('input',()=>{obj[key]=el.value;save();if(el.id==='scoreIn')renderScore();});});
-  const pr=document.getElementById('profile');pr.value=S.profile||'';
-  pr.addEventListener('input',()=>{S.profile=pr.value;save();});
 }
 
 /* RESET */
@@ -1008,6 +1021,11 @@ async function syncBuxfer(){
   finally{document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=false);}
 }
 
+function bxNwTab(t,el){
+  document.getElementById('bxNwAssets').style.display=t==='assets'?'block':'none';
+  document.getElementById('bxNwLiab').style.display=t==='liab'?'block':'none';
+  el.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===el));
+}
 function bxAccountType(a){
   const t=(a.type||'').toLowerCase(),n=(a.name||'').toLowerCase();
   if(t.includes('asset')||n.includes('propert')||n.includes('house'))return 'Property';
@@ -1093,6 +1111,21 @@ function renderBuxfer(){
     html+='</div>';
   });
   html+='</div>';
+
+  // Net worth breakdown — assets vs liabilities, live from Buxfer
+  const assetAccts=[...accounts].filter(a=>(parseFloat(a.balance)||0)>0).sort((a,b)=>parseFloat(b.balance)-parseFloat(a.balance));
+  const liabAccts=[...accounts].filter(a=>(parseFloat(a.balance)||0)<0).sort((a,b)=>parseFloat(a.balance)-parseFloat(b.balance));
+  html+=`<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Net worth breakdown</h3>
+    <div class="seg" style="margin-bottom:10px">
+      <button class="on" data-nwtab="assets" onclick="bxNwTab('assets',this)">Assets</button>
+      <button data-nwtab="liab" onclick="bxNwTab('liab',this)">Liabilities</button>
+    </div>
+    <div id="bxNwAssets">${assetAccts.map(a=>`<div class="stat"><span>${a.name}</span><span class="v">${AUD(a.balance)}</span></div>`).join('')||'<p class="hint" style="margin:0">No asset accounts.</p>'}</div>
+    <div id="bxNwLiab" style="display:none">${liabAccts.map(a=>`<div class="stat"><span>${a.name}</span><span class="v" style="color:var(--bad)">${AUD(a.balance)}</span></div>`).join('')||'<p class="hint" style="margin:0">No liability accounts.</p>'}</div>
+    <div class="stat" style="margin-top:12px;border-top:2px solid var(--line);padding-top:10px"><span>Total assets</span><span class="v">${AUD(assets)}</span></div>
+    <div class="stat"><span>Total liabilities</span><span class="v" style="color:var(--bad)">${AUD(liab)}</span></div>
+    <div class="big"><span class="lbl">Net worth</span><span class="amt ${nw>=0?'pos':'neg'}">${AUD(nw)}</span></div>
+  </div>`;
 
   // Budgets
   if(budgets.length){
@@ -1231,43 +1264,8 @@ function renderBxChat(){
 }
 
 /* MONEY */
-let curMoney='income',curNw='assets';
-const SUGGEST={
-  income:['After-tax pay','Bonus / GBS','Other income'],
-  nondisc:['Mortgage / rent','Groceries','Utilities','Insurance','Rates / levies','Phone & internet','Fuel','Vehicle','Medical'],
-  disc:['Charitable giving','School fees','Clothing','Travel','Takeaways','Recreation','Homewares','Gifts'],
-  assets:['House','Cash & cheque','Savings','Super / investments','Vehicle'],
-  liab:['Mortgage','Other loans','Credit card']
-};
-function dataList(id,arr){return `<datalist id="${id}">${arr.map(x=>`<option value="${x}">`).join('')}</datalist>`;}
-function moneyTab(t){curMoney=t;document.querySelectorAll('[data-money]').forEach(b=>b.classList.toggle('on',b.dataset.money===t));renderMoney();}
-function nwTab(t){curNw=t;document.querySelectorAll('[data-nw]').forEach(b=>b.classList.toggle('on',b.dataset.nw===t));renderNw();}
-function lineRow(arr,idx,listId){
-  const r=document.createElement('div');r.className='li';
-  r.innerHTML=`<input class="txt name" list="${listId}" placeholder="Item"><span class="pre">$</span>
-    <input class="txt amt" type="number" inputmode="decimal" placeholder="0"><button class="del">×</button>`;
-  const [nm,am]=r.querySelectorAll('input');nm.value=arr[idx].n||'';am.value=arr[idx].v||'';
-  nm.addEventListener('input',()=>{arr[idx].n=nm.value;save();});
-  am.addEventListener('input',()=>{arr[idx].v=parseFloat(am.value)||0;save();recalc();});
-  r.querySelector('.del').onclick=()=>{arr.splice(idx,1);save();renderMoney();renderNw();recalc();};
-  return r;
-}
-function renderMoney(){const w=document.getElementById('moneyLines');w.innerHTML=dataList('dl_'+curMoney,SUGGEST[curMoney]);
-  S.money[curMoney].forEach((_,i)=>w.appendChild(lineRow(S.money[curMoney],i,'dl_'+curMoney)));recalc();}
-function renderNw(){const w=document.getElementById('nwLines');w.innerHTML=dataList('dl_'+curNw,SUGGEST[curNw]);
-  S.money[curNw].forEach((_,i)=>w.appendChild(lineRow(S.money[curNw],i,'dl_'+curNw)));recalc();}
-const sum=a=>a.reduce((t,x)=>t+(+x.v||0),0);
-function recalc(){
-  const inc=sum(S.money.income),ess=sum(S.money.nondisc),life=sum(S.money.disc);const flow=inc-ess-life;
-  const nf=document.getElementById('netFlow');nf.textContent=fmt(flow);nf.className='amt '+(flow>=0?'pos':'neg');
-  const as=sum(S.money.assets),li=sum(S.money.liab),nw=as-li;
-  document.getElementById('totAssets').textContent=fmt(as);document.getElementById('totLiab').textContent=fmt(li);
-  const nwe=document.getElementById('netWorth');nwe.textContent=fmt(nw);nwe.className='amt '+(nw>=0?'pos':'neg');
-}
 function renderScore(){const v=Math.max(0,Math.min(44,+S.money.score||0));
   document.getElementById('scoreRing').style.setProperty('--p',(v/44*100));document.getElementById('scoreRingT').textContent=v;}
-document.getElementById('addLine').onclick=()=>{S.money[curMoney].push({n:'',v:''});save();renderMoney();};
-document.getElementById('addNw').onclick=()=>{S.money[curNw].push({n:'',v:''});save();renderNw();};
 
 /* DATA */
 function exportData(){
@@ -1287,12 +1285,28 @@ function resetAll(){
   S=blank();save();renderAll();toast('Cleared — a backup was downloaded first');}
 
 function daysSince(iso){if(!iso)return Infinity;return Math.floor((Date.now()-new Date(iso).getTime())/86400000);}
-function backupOverdue(){return daysSince(S.meta&&S.meta.lastBackup)>=BACKUP_WARN_DAYS;}
+function backupOverdue(){
+  if(S.buxfer&&S.buxfer.cloudBackup)return false;
+  return daysSince(S.meta&&S.meta.lastBackup)>=BACKUP_WARN_DAYS;
+}
 function renderBackupState(){
   const el=document.getElementById('backupState');if(!el)return;
   const d=daysSince(S.meta&&S.meta.lastBackup);
   el.textContent=d===Infinity?'Never backed up on this device':d===0?'Backed up today':('Last backed up '+d+' day'+(d===1?'':'s')+' ago');
   el.classList.toggle('warn',backupOverdue());
+
+  const cel=document.getElementById('cloudBackupState');
+  if(cel){
+    const c=S.buxfer||{};
+    if(!c.cloudBackup)cel.textContent='Off — turn on to auto-save a copy to your Worker';
+    else if(!c.lastCloudBackup)cel.textContent='On — waiting for the next change to save';
+    else{
+      const cd=daysSince(c.lastCloudBackup);
+      cel.textContent='On — last cloud backup '+(cd===0?'today':cd+' day'+(cd===1?'':'s')+' ago');
+    }
+  }
+  const ctoggle=document.getElementById('cloudBackupToggle');
+  if(ctoggle&&document.activeElement!==ctoggle)ctoggle.checked=!!(S.buxfer&&S.buxfer.cloudBackup);
 }
 function updateNudge(){
   const overdue=backupOverdue();
@@ -1301,7 +1315,7 @@ function updateNudge(){
 }
 function dismissNudge(){reminderDismissed=true;updateNudge();}
 
-function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderMoney();renderNw();renderScore();recalc();renderConn();renderBuxfer();renderBackupState();updateNudge();}
+function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderScore();renderConn();renderBuxfer();renderBackupState();updateNudge();}
 renderAll();
 </script>
 </body>
