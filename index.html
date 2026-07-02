@@ -709,6 +709,12 @@ const CHECKLIST=[
 ];
 const CAD=[['daily','Daily'],['weekly','Weekly'],['monthly','Monthly']];
 const HOUSEHOLD=['Andrew','Bronnia','Gordon','Albert'];
+const PERSON_ALIASES={mum:'Bronnia',mom:'Bronnia',mother:'Bronnia',dad:'Andrew',father:'Andrew'};
+function mapPersonAlias(raw){
+  if(!raw)return raw;
+  const key=raw.trim().toLowerCase();
+  return PERSON_ALIASES[key]||raw;
+}
 const PERSON_COLORS={Andrew:'#5A3E7A',Bronnia:'#C2607A',Gordon:'#3F8E62',Albert:'#2E7D9A'};
 const openHabits=new Set();
 const openChecklist=new Set();
@@ -722,6 +728,11 @@ const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
 const norm=s=>(s||'').trim().toLowerCase();
 let lastUnmatched=[],lastEvents=null,lastSince='';
 const todayISO=d=>{const x=d||new Date();return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+function workerBase(url){
+  let u=(url||'').trim().replace(/\/+$/,'');
+  if(u&&!/^https?:\/\//i.test(u))u='https://'+u; // guard against a bare domain being treated as a relative link
+  return u;
+}
 const currentMonthKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
 const blankReset=()=>{const o={};PILLARS.forEach(p=>o[p.k]='');return o;};
 let showArchived=false;
@@ -741,7 +752,7 @@ function normalise(s){
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
     g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;});});
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
-    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=h.person||'';h.id=h.id||genId();});
+    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
   s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
@@ -812,7 +823,7 @@ async function pushCloudBackup(){
   const c=S.buxfer;
   if(!c.cloudBackup||!c.url)return;
   try{
-    const base=c.url.replace(/\/+$/,'');
+    const base=workerBase(c.url);
     const res=await fetch(base+'/backup',{
       method:'POST',
       headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
@@ -833,7 +844,7 @@ async function restoreFromCloud(){
   if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer first');return;}
   if(!confirm('Replace everything on this device with the latest cloud backup? This cannot be undone locally (your current data is not auto-saved first).'))return;
   try{
-    const base=c.url.replace(/\/+$/,'');
+    const base=workerBase(c.url);
     const res=await fetch(base+'/backup',{headers:bxHeaders()});
     if(res.status===404){toast('No cloud backup found yet — enable auto-backup and make a change first');return;}
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -1124,7 +1135,7 @@ async function syncSkylight(){
   document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=true);
   try{
     const since=todayISO(new Date(Date.now()-1000*60*60*24*60));
-    const u=c.url.replace(/\/+$/,'')+'/sync?since='+since+(c.routinesOnly!==false?'&routinesOnly=1':'');
+    const u=workerBase(c.url)+'/sync?since='+since+(c.routinesOnly!==false?'&routinesOnly=1':'');
     const res=await fetch(u,{headers:c.key?{'Authorization':'Bearer '+c.key}:{}});
     if(!res.ok)throw new Error('HTTP '+res.status);
     const j=await res.json();
@@ -1141,7 +1152,7 @@ function applySkylight(events,since){
   sky.forEach(h=>{Object.keys(h.log).forEach(k=>{if(k.length===10&&k>=since&&k<=today)delete h.log[k];});});
   let matched=0;const um={};
   events.forEach(ev=>{
-    const name=(ev.name||'').trim(),person=(ev.person||'').trim(),date=(ev.date||'').slice(0,10);
+    const name=(ev.name||'').trim(),person=mapPersonAlias((ev.person||'').trim()),date=(ev.date||'').slice(0,10);
     if(!name||!date)return;
     const cands=sky.filter(h=>norm(h.sky)===norm(name));
     // prefer a person-specific match, else a habit with no person set
@@ -1157,22 +1168,29 @@ function createFromUnmatched(name,person){
   if(lastEvents){const r=applySkylight(lastEvents,lastSince);lastUnmatched=r.unmatched;}
   save();renderHabits();toast('Habit created &amp; filled');
 }
+let unmatchedOpen=false;
 function renderUnmatched(){
   const w=document.getElementById('unmatchedWrap');if(!w)return;w.innerHTML='';
   // refresh people datalist
   const dl=document.getElementById('peopleList');if(dl)dl.innerHTML=knownPeople().map(p=>`<option value="${p}">`).join('');
   if(!lastUnmatched.length)return;
-  const card=document.createElement('div');card.className='card';
-  card.innerHTML=`<h3 style="margin:0 0 4px;font-size:15px">Unmatched from Skylight</h3>
-    <p class="hint" style="margin:0 0 10px">${lastUnmatched.length} routine/person combination${lastUnmatched.length===1?'':'s'} synced with no matching habit. Create one in a tap — it fills from the last sync.</p>`;
+  const item=document.createElement('div');item.className='item'+(unmatchedOpen?' open':'');
+  item.innerHTML=`<button class="hd"><span class="n">⛓</span><span style="flex:1">Unmatched from Skylight</span><span class="cklct">${lastUnmatched.length}</span><span class="chev">›</span></button>
+    <div class="bd">
+      <p class="hint" style="margin:0 0 10px">Routine/person combinations synced with no matching habit. Create one in a tap — it fills from the last sync.</p>
+      <div class="umlist"></div>
+    </div>`;
+  item.querySelector('.hd').onclick=()=>{unmatchedOpen=!unmatchedOpen;renderUnmatched();};
+  const list=item.querySelector('.umlist');
   lastUnmatched.slice(0,40).forEach(u=>{
     const row=document.createElement('div');row.className='umrow';
     row.innerHTML=`<div class="t">${u.name}${u.person?`<small>${u.person}</small>`:''}</div>
       <span class="cnt">${u.count}×</span><button class="mk">+ Habit</button>`;
     row.querySelector('.mk').onclick=()=>createFromUnmatched(u.name,u.person);
-    card.appendChild(row);});
-  if(lastUnmatched.length>40){const m=document.createElement('p');m.className='hint';m.textContent='+ '+(lastUnmatched.length-40)+' more…';card.appendChild(m);}
-  w.appendChild(card);
+    list.appendChild(row);});
+  if(lastUnmatched.length>40){const m=document.createElement('p');m.className='hint';m.textContent='+ '+(lastUnmatched.length-40)+' more…';list.appendChild(m);}
+  const wrapAcc=document.createElement('div');wrapAcc.className='acc';wrapAcc.appendChild(item);
+  w.appendChild(wrapAcc);
 }
 function renderConn(){
   const c=S.conn||{};
@@ -1243,7 +1261,7 @@ async function syncBuxfer(){
   if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer');go('more');return;}
   document.querySelectorAll('.syncbtn').forEach(b=>b.disabled=true);
   try{
-    const base=c.url.replace(/\/+$/,'');
+    const base=workerBase(c.url);
     const [ar,tr,br]=await Promise.all([
       fetch(base+'/accounts',{headers:bxHeaders()}),
       fetch(base+'/transactions?since='+todayISO(new Date(Date.now()-1000*60*60*24*180)),{headers:bxHeaders()}),
@@ -1482,7 +1500,7 @@ async function askBuxfer(){
   const context=`ACCOUNTS:\n${acctCtx||'None'}\n\nRECENT TRANSACTIONS:\n${txCtx||'None'}\n\nBUDGETS:\n${budgetCtx||'None'}\n\nGOALS:\n${goalCtx||'None'}`;
 
   try{
-    const base=S.buxfer.url.replace(/\/+$/,'');
+    const base=workerBase(S.buxfer.url);
     const res=await fetch(base+'/ask',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
       body:JSON.stringify({question:q,context,history:bxChat.slice(0,-1)})});
     if(!res.ok)throw new Error('HTTP '+res.status);
