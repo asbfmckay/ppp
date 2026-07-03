@@ -93,7 +93,10 @@
   label.fld{display:block;font-size:12px;font-weight:600;color:var(--plum-soft);margin:0 0 5px}
   textarea,input.txt,select.txt{width:100%;border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;font-size:14px;background:#F1EFEA;color:var(--ink);resize:vertical}
-  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--amber);background:#fff;
+  select.txt{appearance:none;-webkit-appearance:none;padding-right:30px;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A3E7A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"),#F1EFEA;
+    background-repeat:no-repeat;background-position:right 10px center;background-size:13px}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--amber);background-color:#fff;
     box-shadow:0 0 0 3px rgba(216,90,48,.14)}
   textarea{min-height:70px;line-height:1.45}
 
@@ -253,7 +256,7 @@
   .syncbtn-mini:hover{border-color:var(--plum-soft);background:var(--card)}
   .syncbtn:disabled{opacity:.5}
   .lastsync{font-size:11px;color:var(--muted)}
-  .conn .rowck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--plum-soft);font-weight:600;margin:2px 0 12px}
+  .rowck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--plum-soft);font-weight:600;margin:2px 0 12px;cursor:pointer}
   .conn .txt{margin-bottom:8px}
 
   .nudge{display:flex;align-items:center;gap:10px;background:#FBEBE6;border:1px solid #F0C4B5;color:#9a3f24;
@@ -264,7 +267,7 @@
   .navdot{position:absolute;top:5px;right:calc(50% - 16px);width:7px;height:7px;border-radius:50%;background:var(--bad)}
   .backupState{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 12px}
   .backupState.warn{color:var(--bad)}
-  .conn .rowck input{accent-color:var(--amber);width:16px;height:16px}
+  .rowck input{accent-color:var(--plum);width:17px;height:17px;flex:none;cursor:pointer}
 
   /* guide */
   .acc .item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
@@ -350,11 +353,6 @@
   .bx-ask-diamond{background:var(--plum);color:#fff;border:none;border-radius:10px;padding:0 16px;flex:none;
     font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:inherit}
   .bx-ask-diamond:hover{background:var(--plum-deep)}
-  .bx-cf{display:flex;gap:5px;align-items:flex-end;height:100px;margin-bottom:6px}
-  .bx-cf-m{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
-  .bx-cf-pair{width:100%;display:flex;gap:2px;align-items:flex-end;height:82px}
-  .bx-cf-bar{flex:1;border-radius:3px 3px 0 0}
-  .bx-cf-lbl{font-size:9px;color:var(--muted)}
   .bx-legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px}
   .bx-legend span{display:inline-flex;align-items:center;gap:4px}
   .bx-dot{width:9px;height:9px;border-radius:2px;display:inline-block}
@@ -786,7 +784,7 @@ let S=load();
 function blank(){
   const g={},adv={};PILLARS.forEach(p=>{g[p.k]=[];adv[p.k]=[]});
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
-    reset:{},goals:g,habits:[],checklist:{},crew:[],properties:[],advice:adv,
+    reset:{},goals:g,habits:[],checklist:{},crew:[],properties:[],advice:adv,bills:[],
     money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],spendCeiling:0,
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
@@ -844,6 +842,14 @@ function normalise(s){
   s.advice=s.advice||{};
   PILLARS.forEach(p=>{s.advice[p.k]=s.advice[p.k]||[];
     s.advice[p.k].forEach(a=>{a.id=a.id||genId();a.text=a.text||'';a.source=a.source||'';a.date=a.date||'';});});
+  s.bills=s.bills||[];
+  s.bills.forEach(b=>{
+    b.id=b.id||genId();b.name=b.name||'';b.amount=b.amount||0;
+    b.frequency=b.frequency||'monthly';b.nextDueDate=b.nextDueDate||todayISO();
+    b.method=b.method||'manual';b.accountId=b.accountId||'';
+    b.variable=!!b.variable;b.category=b.category||'';b.active=b.active!==false;
+    b.regular=(b.regular===undefined)?true:!!b.regular;
+  });
   s.money.equity=Object.assign({maxLvrPct:80},s.money.equity||{});
   s.money.borrow=Object.assign({grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5},s.money.borrow||{});
   s.money.spendCeiling=s.money.spendCeiling||0;
@@ -1381,6 +1387,7 @@ const BX_DEMO_GOALS=[
 function loadBxDemo(){bxDemoMode=true;renderBuxfer();toast('Showing demo data — nothing is saved or synced');}
 function exitBxDemo(){bxDemoMode=false;renderBuxfer();}
 const AUD=n=>(n<0?'-$':'$')+Math.abs(Math.round(n||0)).toLocaleString();
+const AUD2=n=>(n<0?'-$':'$')+Math.abs(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const AUDc=n=>{const a=Math.abs(n||0),s=n<0?'-':'';
   if(a>=1000000)return s+'$'+(Math.round(a/100000)/10)+'M';
   if(a>=1000)return s+'$'+Math.round(a/1000)+'k';
@@ -1422,13 +1429,14 @@ function bxGroupIcon(g){
   return {'Property':'building','Loans & credit':'card','Superannuation':'bank','Savings':'piggy','Everyday':'wallet'}[g]||'wallet';
 }
 function bxAlerts(){
-  const {accounts,transactions,budgets}=bxDemoMode?BX_DEMO_CACHE:S.buxfer.cache;
+  const {accounts,transactions}=bxDemoMode?BX_DEMO_CACHE:S.buxfer.cache;
   const alerts=[];
-  budgets.forEach(b=>{
-    const spent=parseFloat(b.currentPeriod)||0,limit=parseFloat(b.limit)||0;
-    if(limit>0){const pct=spent/limit*100;
-      if(pct>=100)alerts.push({t:'danger',icon:'alertCircle',m:`Budget overrun: "${b.name}" is at ${Math.round(pct)}% (${AUD(spent)} of ${AUD(limit)}).`});
-      else if(pct>=80)alerts.push({t:'warning',icon:'alertTriangle',m:`"${b.name}" is at ${Math.round(pct)}% of budget — worth a look.`});}
+  S.money.envelopes.forEach(e=>{
+    const {diff}=envelopeStatus(e,accounts,transactions);
+    if(diff<-100){
+      const acct=accounts.find(a=>String(a.id)===String(e.accountId));
+      alerts.push({t:'warning',icon:'alertTriangle',m:`"${acct?acct.name:e.label}" budget is ${AUD(Math.abs(diff))} behind.`});
+    }
   });
   accounts.forEach(a=>{
     const bal=parseFloat(a.balance)||0,type=bxAccountType(a);
@@ -1436,6 +1444,21 @@ function bxAlerts(){
   });
   [...transactions].filter(t=>Math.abs(parseFloat(t.amount)||0)>2000).slice(0,5).forEach(t=>{
     alerts.push({t:'info',icon:'infoCircle',m:`Large transaction ${t.date}: "${t.description}" for ${AUD(Math.abs(parseFloat(t.amount)||0))}.`});
+  });
+  S.bills.filter(b=>b.active&&b.method==='manual'&&daysUntil(b.nextDueDate)<=7).forEach(b=>{
+    const d=daysUntil(b.nextDueDate);
+    alerts.push({t:d<0?'danger':'warning',icon:'alertTriangle',
+      m:`"${b.name}" (${AUD(b.amount)}) ${d<0?'was due '+Math.abs(d)+'d ago — check it went through':d===0?'is due today':'is due in '+d+'d'} — pay manually.`});
+  });
+  const ddAccountIds=[...new Set(S.bills.filter(b=>b.active&&b.method==='directDebit').map(b=>b.accountId))];
+  ddAccountIds.forEach(accId=>{
+    const acct=accounts.find(a=>String(a.id)===String(accId));if(!acct)return;
+    const upcoming=upcomingBillsForAccount(accId,7);
+    if(!upcoming.length)return;
+    const need=upcoming.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+    const have=parseFloat(acct.balance)||0;
+    if(have<need)alerts.push({t:'danger',icon:'alertCircle',
+      m:`"${acct.name}" has ${AUD(have)} but ${AUD(need)} in direct debits are due within 7 days — top it up.`});
   });
   if(!alerts.length)alerts.push({t:'ok',icon:'checkCircle',m:'Everything looks healthy — no issues detected.'});
   return alerts;
@@ -1510,7 +1533,7 @@ function renderAcctDetail(){
     acctTx.length?[...acctTx].reverse().slice(0,15).map(t=>{
       const amt=parseFloat(t.amount)||0,inc=amt>0;
       return `<div class="bx-tx"><span class="d">${t.description||'—'}</span><span class="m">${t.date}</span>
-        <span class="a ${inc?'pos':'neg'}">${inc?'+':'-'}${AUD(Math.abs(amt))}</span></div>`;
+        <span class="a ${inc?'pos':'neg'}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span></div>`;
     }).join(''):'<div class="ad-empty">No transactions on this account yet.</div>'
   }</div>`;
 
@@ -1566,6 +1589,38 @@ function lastNMonthKeys(n){
     keys.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
   }
   return keys;
+}
+// Two-series line chart (e.g. income vs expenses), values all >= 0.
+function dualLineSvg(labels,seriesA,seriesB,colorA,colorB){
+  const n=labels.length;if(n<2)return '<p class="hint" style="margin:0">Not enough history yet.</p>';
+  const w=560,h=140,pad=10,botPad=22;
+  const maxV=Math.max(1,...seriesA,...seriesB);
+  const step=(w-pad*2)/(n-1);
+  const yOf=v=>h-botPad-(v/maxV)*(h-botPad-pad);
+  const ptsFor=arr=>arr.map((v,i)=>`${pad+i*step},${yOf(v)}`).join(' ');
+  const lbls=labels.map((l,i)=>`<text x="${pad+i*step}" y="${h-6}" font-size="9" fill="var(--muted)" text-anchor="middle">${l}</text>`).join('');
+  return `<svg width="100%" viewBox="0 0 ${w} ${h}" style="display:block;aspect-ratio:${w}/${h}" preserveAspectRatio="none">
+    <polyline points="${ptsFor(seriesB)}" fill="none" stroke="${colorB}" stroke-width="1.5" stroke-linejoin="round"/>
+    <polyline points="${ptsFor(seriesA)}" fill="none" stroke="${colorA}" stroke-width="1.5" stroke-linejoin="round"/>
+    ${lbls}
+  </svg>`;
+}
+// Single-series line chart where values can be positive or negative (e.g. net
+// savings flow), with a zero baseline and per-point colour by sign.
+function signedLineSvg(labels,values){
+  const n=labels.length;if(n<2)return '<p class="hint" style="margin:0">Not enough history yet.</p>';
+  const w=560,h=140,pad=10,botPad=22;
+  const maxAbs=Math.max(1,...values.map(v=>Math.abs(v)));
+  const step=(w-pad*2)/(n-1);
+  const midY=(h-botPad+pad)/2;
+  const yOf=v=>midY-(v/maxAbs)*(midY-pad);
+  const pts=values.map((v,i)=>`${pad+i*step},${yOf(v)}`).join(' ');
+  const lbls=labels.map((l,i)=>`<text x="${pad+i*step}" y="${h-6}" font-size="9" fill="var(--muted)" text-anchor="middle">${l}</text>`).join('');
+  return `<svg width="100%" viewBox="0 0 ${w} ${h}" style="display:block;aspect-ratio:${w}/${h}" preserveAspectRatio="none">
+    <line x1="${pad}" y1="${midY}" x2="${w-pad}" y2="${midY}" stroke="var(--line)" stroke-width="1"/>
+    <polyline points="${pts}" fill="none" stroke="var(--plum)" stroke-width="1.5" stroke-linejoin="round"/>
+    ${lbls}
+  </svg>`;
 }
 function bxMonthly(transactions){
   const m={};
@@ -1623,32 +1678,30 @@ function renderBuxfer(){
 
   // Envelope budgets — tracked per Buxfer account, limits set here in PPP, not read from Buxfer
   html+='<div id="envWrap"></div>';
+  html+='<div id="billsWrap"></div>';
   html+='<div id="savingsFlowWrap"></div>';
 
   // Cashflow chart
   const monthly=bxMonthly(transactions);
   const keys=lastNMonthKeys(12);
   if(keys.length){
-    const maxV=Math.max(...keys.map(k=>{const m=monthly[k]||{inc:0,exp:0};return Math.max(m.inc,m.exp);}),1);
-    html+='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Income vs expenses</h3><div class="bx-cf">';
-    keys.forEach(k=>{
-      const {inc=0,exp=0}=monthly[k]||{};
-      const ih=Math.max(2,(inc/maxV)*82),eh=Math.max(2,(exp/maxV)*82);
-      const lbl=new Date(k+'-01').toLocaleString('en-AU',{month:'short'});
-      html+=`<div class="bx-cf-m"><div class="bx-cf-pair">
-        <div class="bx-cf-bar" style="height:${ih}px;background:var(--plum)"></div>
-        <div class="bx-cf-bar" style="height:${eh}px;background:var(--amber-soft)"></div>
-        </div><div class="bx-cf-lbl">${lbl}</div></div>`;
-    });
-    html+=`</div><div class="bx-legend"><span><span class="bx-dot" style="background:var(--plum)"></span>Income</span>
-      <span><span class="bx-dot" style="background:var(--amber-soft)"></span>Expenses</span></div></div>`;
+    const incVals=keys.map(k=>(monthly[k]||{}).inc||0);
+    const expVals=keys.map(k=>(monthly[k]||{}).exp||0);
+    const labels=keys.map(k=>new Date(k+'-01').toLocaleString('en-AU',{month:'short'}));
+    const curInc=incVals[incVals.length-1]||0,curExp=expVals[expVals.length-1]||0,curNet=curInc-curExp;
+    html+=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Income vs expenses</h3>
+      <div class="stat" style="margin-top:8px"><span>This month — income</span><span class="v" style="color:var(--plum)">${AUD(curInc)}</span></div>
+      <div class="stat"><span>This month — expenses</span><span class="v" style="color:var(--bad)">${AUD(curExp)}</span></div>
+      <div class="stat"><span>Net</span><span class="v" style="color:${curNet>=0?'var(--good)':'var(--bad)'}">${curNet>=0?'+':''}${AUD(curNet)}</span></div>
+      ${dualLineSvg(labels,incVals,expVals,'var(--plum)','var(--bad)')}
+      <div class="bx-legend" style="margin-top:6px"><span><span class="bx-dot" style="background:var(--plum)"></span>Income</span>
+      <span><span class="bx-dot" style="background:var(--bad)"></span>Expenses</span></div></div>`;
   }
 
   html+='<div id="propWrap"></div><div id="equityWrap"></div>';
 
   // Goals linked to Buxfer accounts
   html+='<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Savings goals</h3>';
-  html+='<p class="hint" style="margin:0 0 12px">Link a goal to a Buxfer account and its progress ring fills in on its own.</p>';
   html+='<div id="bxGoalsList"></div>';
   html+=`<div class="bx-goaledit">
       <input class="txt" id="bxGoalLabel" placeholder="Goal — e.g. House deposit">
@@ -1674,6 +1727,7 @@ function renderBuxfer(){
   renderBxGoals();
   renderProperties();
   renderEquityBorrow();
+  renderBills();
   renderEnvelopes();
   renderSavingsFlow();
   renderBxChat();
@@ -1756,8 +1810,7 @@ function renderProperties(){
   const w=document.getElementById('propWrap');if(!w)return;
   const accounts=liveAccounts();
   let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Property portfolio</h3>
-    <p class="hint" style="margin:0 0 12px">Track your home and any development properties here. Set an assumed annual growth rate and log real valuations (agent appraisals, Domain/CoreLogic estimates) as you get them — the estimate compounds forward from your last logged value until the next one lands.</p>
-    <div class="acc" id="propList"></div>
+    <div class="acc" id="propList" style="margin-top:10px"></div>
     <button class="addbtn" onclick="addProperty()">+ Add property</button>
   </div>`;
   w.innerHTML=html;
@@ -1771,7 +1824,7 @@ function renderProperties(){
     const stale=daysSinceValuation(p)>=VALUATION_STALE_DAYS;
     const staleBadge=stale?`<span class="cklct" style="background:#FAECE7;color:#993C1D">${p.valuations.length?'update due':'no valuation yet'}</span>`:'';
     const item=document.createElement('div');item.className='item'+(openProps.has(p.id)?' open':'');
-    item.innerHTML=`<button class="hd"><span class="n">🏠</span><span style="flex:1">${p.name||'Untitled property'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(value)}${asOf?' · as of '+source+' on '+asOf:' · '+source}</small></span>${staleBadge}<span class="chev">›</span></button>
+    item.innerHTML=`<button class="hd"><span class="n"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span><span style="flex:1">${p.name||'Untitled property'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(value)}${asOf?' · as of '+source+' on '+asOf:' · '+source}</small></span>${staleBadge}<span class="chev">›</span></button>
       <div class="bd">
         <label class="fld">Name / address</label>
         <input class="txt name" placeholder="e.g. 34 Treetop Tce, Plenty VIC">
@@ -1874,7 +1927,7 @@ function renderEquityBorrow(){
 
   w.innerHTML=`<div class="card">
     <h3 style="margin:0 0 4px;font-size:15px">Usable equity &amp; borrowing capacity</h3>
-    <p class="hint" style="margin:0 0 12px">Rough planning estimates only — not a bank pre-approval. Adjust the assumptions to match your real numbers; speak to a mortgage broker before relying on these for a real decision.</p>
+    <p class="hint" style="margin:0 0 12px">Planning estimates only — not a bank pre-approval.</p>
 
     <label class="fld">Max LVR for equity access (%)</label>
     <input class="txt" type="number" id="eqLvr" value="${lvr}">
@@ -1901,7 +1954,7 @@ function renderEquityBorrow(){
       <div class="stat"><span>Less other liability repayments</span><span class="v" style="color:var(--bad)">-${AUD(otherRepay)}</span></div>
       <div class="stat"><span>Annual surplus available to service new debt</span><span class="v">${AUD(surplus)}</span></div>
       <div class="big"><span class="lbl">Estimated additional borrowing capacity</span><span class="amt pos">${AUD(capacity)}</span></div>
-      <p class="hint">Assumes a 30-year loan at the assessment rate above (your real rate plus a buffer — lenders typically add ~2–3%), fully amortising, using only the surplus after tax, living costs, and other repayments. Doesn't account for dependents, credit limits, or lender-specific policy — a broker's figure will differ.</p>
+      <p class="hint">30-year loan at the assessment rate above, fully amortising. A broker's real figure will differ.</p>
     </div>
   </div>`;
 }
@@ -1914,7 +1967,7 @@ function renderSavingsFlow(){
   const savingsNames=new Set(accounts.filter(a=>bxAccountType(a)==='Savings').map(a=>a.name));
   if(!savingsNames.size){w.innerHTML='';return;}
 
-  const months=lastNMonthKeys(6);
+  const months=lastNMonthKeys(12);
   const byMonth=months.map(k=>{
     const tx=transactions.filter(t=>savingsNames.has(t.accountName)&&(t.date||'').slice(0,7)===k);
     const inflow=tx.filter(t=>(parseFloat(t.amount)||0)>0).reduce((s,t)=>s+parseFloat(t.amount),0);
@@ -1922,29 +1975,16 @@ function renderSavingsFlow(){
     return {k,net:inflow-outflow,outflow};
   });
   const thisMonth=byMonth[byMonth.length-1]||{net:0,outflow:0};
-  const maxAbs=Math.max(1,...byMonth.map(m=>Math.abs(m.net)));
-  const barH=60;
-
-  let bars='';
-  byMonth.forEach((m,i)=>{
-    const x=i*(560/6);
-    const h=Math.max(2,(Math.abs(m.net)/maxAbs)*barH);
-    const y=m.net>=0?barH-h:barH;
-    const col=m.net>=0?'var(--good)':'var(--bad)';
-    const lbl=new Date(m.k+'-01').toLocaleString('en-AU',{month:'short'});
-    bars+=`<rect x="${x+8}" y="${y}" width="${560/6-16}" height="${h}" rx="2" fill="${col}"/>
-      <text x="${x+280/6}" y="${barH*2+16}" font-size="10" fill="var(--muted)" text-anchor="middle">${lbl}</text>`;
-  });
+  const labels=byMonth.map(m=>new Date(m.k+'-01').toLocaleString('en-AU',{month:'short'}));
+  const values=byMonth.map(m=>m.net);
+  const totalSavings=accounts.filter(a=>bxAccountType(a)==='Savings').reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
 
   w.innerHTML=`<div class="card">
     <h3 style="margin:0 0 4px;font-size:15px">Savings growth</h3>
-    <p class="hint" style="margin:0 0 12px">Net money in vs out of your Savings accounts — the real test of "are we getting ahead," separate from whether any one budget balances this fortnight.</p>
-    <div class="stat"><span>This month, net</span><span class="v" style="color:${thisMonth.net>=0?'var(--good)':'var(--bad)'}">${thisMonth.net>=0?'+':''}${AUD(thisMonth.net)}</span></div>
+    <div class="stat"><span>Total Savings</span><span class="v">${AUD(totalSavings)}</span></div>
+    <div class="stat"><span>Change from last month</span><span class="v" style="color:${thisMonth.net>=0?'var(--good)':'var(--bad)'}">${thisMonth.net>=0?'+':''}${AUD(thisMonth.net)}</span></div>
     ${thisMonth.outflow>0?`<div class="stat"><span>Moved out of Savings this month</span><span class="v" style="color:var(--bad)">-${AUD(thisMonth.outflow)}</span></div>`:''}
-    <svg width="100%" height="${barH*2+24}" viewBox="0 0 560 ${barH*2+24}" preserveAspectRatio="none" style="margin-top:6px">
-      <line x1="0" y1="${barH}" x2="560" y2="${barH}" stroke="var(--line)" stroke-width="1"/>
-      ${bars}
-    </svg>
+    ${signedLineSvg(labels,values)}
     ${thisMonth.outflow>50?`<p class="hint" style="margin-top:8px;color:#993C1D">Money left Savings this month — worth checking whether that was a planned expense or an envelope top-up eating into growth.</p>`:''}
   </div>`;
 }
@@ -1996,6 +2036,120 @@ function balanceAtDate(accountId,dateStr,accounts,transactions){
     .reduce((s,t)=>s+(parseFloat(t.amount)||0),0);
   return current-sumSince;
 }
+/* BILLS — recurring and one-off amounts still to come out, so budgets
+   reflect what's realistically left to spend, not just today's balance.
+   Deliberately no auto-advance-by-frequency: the due date is the one thing
+   you own and update by hand once each bill's actually paid, since real
+   billers don't always land exactly N days apart. */
+const openBills=new Set();
+function daysUntil(dateStr){return Math.ceil((new Date(dateStr).getTime()-Date.now())/(1000*60*60*24));}
+// All active bills due from a given account within the next N days.
+function upcomingBillsForAccount(accountId,windowDays){
+  return S.bills.filter(b=>b.active&&b.accountId===accountId&&daysUntil(b.nextDueDate)<=windowDays);
+}
+function addBill(){
+  const name=document.getElementById('billName').value.trim();
+  const amount=parseFloat(document.getElementById('billAmount').value)||0;
+  const accountId=document.getElementById('billAccount').value;
+  const method=document.getElementById('billMethod').value;
+  const dueDate=document.getElementById('billDue').value||todayISO();
+  const regular=document.getElementById('billRegular').checked;
+  if(!name||!amount){toast('Add a name and an amount');return;}
+  S.bills.push({id:genId(),name,amount,nextDueDate:dueDate,method,accountId,variable:false,regular,category:'',active:true});
+  save();renderBills();renderEnvelopes();
+  document.getElementById('billName').value='';document.getElementById('billAmount').value='';
+}
+function delBill(id){S.bills=S.bills.filter(b=>b.id!==id);save();renderBills();renderEnvelopes();}
+function billBadge(dateStr){
+  const d=daysUntil(dateStr);
+  const overdue=d<0,soon=d<=7;
+  return {
+    txt: overdue?'overdue':d===0?'today':soon?`${d}d`:dateStr,
+    bg: overdue||soon?'#FAECE7':'#F1EFEA',
+    col: overdue||soon?'#993C1D':'var(--plum-soft)',
+  };
+}
+function renderBills(){
+  const w=document.getElementById('billsWrap');if(!w)return;
+  const accounts=liveAccounts();
+  const next30=S.bills.filter(b=>b.active&&daysUntil(b.nextDueDate)<=30).reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+  const sorted=[...S.bills].filter(b=>b.active).sort((a,b)=>new Date(a.nextDueDate)-new Date(b.nextDueDate));
+
+  // Compact calendar — every active bill, one line each, soonest first.
+  const calRows=sorted.map(b=>{
+    const acct=accounts.find(a=>String(a.id)===String(b.accountId));
+    const {txt,bg,col}=billBadge(b.nextDueDate);
+    return `<div class="meetrow" style="align-items:center">
+      <span style="flex:none;width:56px;font-size:11px;font-weight:700;color:${col};background:${bg};border-radius:20px;padding:2px 8px;text-align:center">${txt}</span>
+      <span style="flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}${b.method==='directDebit'?' · DD':''}${acct?' · '+acct.name:''}${!b.regular?' · one-off':''}</span>
+      <span style="flex:none;font-size:13px;font-weight:700">${AUD(b.amount)}</span>
+    </div>`;
+  }).join('');
+
+  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Upcoming bills</h3>
+    <div class="stat"><span>Due in the next 30 days, total</span><span class="v">${AUD(next30)}</span></div>
+
+    <div class="crewname" style="margin-top:12px">Calendar</div>
+    <div id="billCalendar">${calRows||'<p class="hint" style="margin:4px 0">No bills added yet.</p>'}</div>
+
+    <div class="crewname" style="margin-top:14px">Edit</div>
+    <div class="acc" id="billList"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <input class="txt" id="billName" placeholder="Bill name" style="flex:1;min-width:120px">
+      <input class="txt" id="billAmount" type="number" placeholder="Amount $" style="width:100px">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <select class="txt" id="billAccount" style="flex:1;min-width:130px">${accountOptions(accounts).replace('— account (optional)','— which account —')}</select>
+      <select class="txt" id="billMethod" style="width:150px"><option value="manual">Pay manually</option><option value="directDebit">Direct debit</option></select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <input class="txt" id="billDue" type="date" style="flex:1;min-width:130px" value="${todayISO()}">
+      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addBill()">+ Add bill</button>
+    </div>
+    <label class="rowck" style="margin-top:8px"><input type="checkbox" id="billRegular" checked> Recurring bill</label>
+  </div>`;
+  w.innerHTML=html;
+
+  const list=document.getElementById('billList');
+  if(!sorted.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No bills added yet.</p>';return;}
+
+  sorted.forEach(b=>{
+    const acct=accounts.find(a=>String(a.id)===String(b.accountId));
+    const {txt,bg,col}=billBadge(b.nextDueDate);
+    const item=document.createElement('div');item.className='item'+(openBills.has(b.id)?' open':'');
+    item.innerHTML=`<button class="hd"><span class="n">${b.method==='directDebit'?'⇄':'✍️'}</span><span style="flex:1">${b.name||'Untitled bill'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(b.amount)} · ${acct?acct.name:'no account set'}</small></span><span class="cklct" style="background:${bg};color:${col}">${txt}</span><span class="chev">›</span></button>
+      <div class="bd">
+        <div style="display:flex;gap:8px">
+          <div style="flex:1"><label class="fld">Name</label><input class="txt bName" value="${b.name}"></div>
+          <div style="width:100px"><label class="fld">Amount $</label><input class="txt bAmount" type="number" value="${b.amount}"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1"><label class="fld">Account</label><select class="txt bAccount">${accountOptions(accounts).replace('— account (optional)','— which account —')}</select></div>
+          <div style="width:150px"><label class="fld">How it's paid</label><select class="txt bMethod"><option value="manual">Pay manually</option><option value="directDebit">Direct debit</option></select></div>
+        </div>
+        <div style="margin-top:8px"><label class="fld">Next due date</label><input class="txt bDue" type="date" value="${b.nextDueDate}"></div>
+        <label class="rowck" style="margin-top:8px"><input type="checkbox" class="bVariable"${b.variable?' checked':''}> Amount varies each time (e.g. electricity) — update it before each due date</label>
+        <label class="rowck" style="margin-top:6px"><input type="checkbox" class="bRegular"${b.regular?' checked':''}> Recurring bill</label>
+        <button class="del" style="margin-top:10px;color:var(--bad);font-size:12px;font-weight:600" onclick="delBill('${b.id}')">${b.regular?'Remove bill':'✓ Paid — remove'}</button>
+      </div>`;
+    item.querySelector('.hd').onclick=()=>{item.classList.toggle('open');
+      if(item.classList.contains('open'))openBills.add(b.id);else openBills.delete(b.id);};
+
+    const bName=item.querySelector('.bName');bName.addEventListener('input',()=>{b.name=bName.value;save();});
+    const bAmount=item.querySelector('.bAmount');bAmount.addEventListener('input',()=>{b.amount=parseFloat(bAmount.value)||0;save();});
+    bAmount.addEventListener('change',()=>{renderBills();renderEnvelopes();});
+    const bAccount=item.querySelector('.bAccount');bAccount.value=b.accountId;
+    bAccount.addEventListener('change',()=>{b.accountId=bAccount.value;save();renderBills();renderEnvelopes();});
+    const bMethod=item.querySelector('.bMethod');bMethod.value=b.method;
+    bMethod.addEventListener('change',()=>{b.method=bMethod.value;save();renderBills();});
+    const bDue=item.querySelector('.bDue');bDue.addEventListener('change',()=>{b.nextDueDate=bDue.value||todayISO();save();renderBills();renderEnvelopes();});
+    item.querySelector('.bVariable').addEventListener('change',(e)=>{b.variable=e.target.checked;save();});
+    item.querySelector('.bRegular').addEventListener('change',(e)=>{b.regular=e.target.checked;save();renderBills();});
+
+    list.appendChild(item);
+  });
+}
+
 function envelopeStatus(e,accounts,transactions){
   const acct=accounts.find(a=>String(a.id)===String(e.accountId));
   const currentBalance=acct?parseFloat(acct.balance)||0:0;
@@ -2058,10 +2212,8 @@ function renderEnvelopes(){
   const ceilingCol=ceilingPct>=100?'var(--bad)':ceilingPct>=80?'#D85A30':'var(--good)';
 
   let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Budgets</h3>
-    <p class="hint" style="margin:0 0 12px">Your own envelope system. Pick a starting point for each account, and this tracks the balance from there — spend less than what lands each period and the spare carries forward automatically; overspend and the shortfall carries forward too. Transfers between envelope accounts just show up as real balance changes, nothing to log by hand.</p>
 
     <div class="stat" style="border-top:1px solid var(--line);padding-top:10px"><span>Across all budgets combined</span><span class="v" style="color:${totalDiff>=0?'var(--good)':'var(--bad)'}">${totalDiff>=0?'+':''}${AUD(totalDiff)}</span></div>
-    <p class="hint" style="margin:0 0 10px">${totalDiff>=0?'Net spare across every budget — the overspends and underspends are cancelling out in your favour.':'Net behind, in total — some budgets are running short even after any that are ahead.'}</p>
 
     <label class="fld">Total everyday spending ceiling (per month, all accounts combined)</label>
     <div style="display:flex;gap:8px;align-items:center">
@@ -2073,8 +2225,8 @@ function renderEnvelopes(){
     <div class="acc" id="envList" style="margin-top:14px"></div>`;
   html+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
     <select class="txt" id="envAccount" style="flex:1;min-width:140px">${accountOptions(available).replace('— account (optional)','— choose account —')}</select>
-    <input class="txt" id="envAlloc" type="number" placeholder="Amount $" style="width:100px">
-    <select class="txt" id="envPeriod" style="width:120px">${PERIOD_OPTS.map(p=>`<option value="${p.d}"${p.d===14?' selected':''}>${p.l}</option>`).join('')}</select>
+    <input class="txt" id="envAlloc" type="number" placeholder="Amount $" style="width:120px">
+    <select class="txt" id="envPeriod" style="width:130px">${PERIOD_OPTS.map(p=>`<option value="${p.d}"${p.d===14?' selected':''}>${p.l}</option>`).join('')}</select>
     <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addEnvelope()">+ Add</button>
   </div></div>`;
   w.innerHTML=html;
@@ -2088,6 +2240,9 @@ function renderEnvelopes(){
     const statusTxt=ahead?`${AUD(diff)} spare`:`${AUD(Math.abs(diff))} behind`;
     const badgeBg=ahead?'#EAF3E4':'#FAECE7',badgeCol=ahead?'#2f6b47':'#993C1D';
     const periodLabel=(PERIOD_OPTS.find(p=>p.d===e.periodDays)||{}).l||(e.periodDays+' days');
+    const upcoming=upcomingBillsForAccount(e.accountId,30);
+    const upcomingTotal=upcoming.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
+    const realistic=currentBalance-upcomingTotal;
     const item=document.createElement('div');item.className='item'+(openEnvs.has(e.id)?' open':'');
     item.innerHTML=`<button class="hd"><span class="n">✉️</span><span style="flex:1">${acct?acct.name:e.label||'(account removed)'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(currentBalance)} balance</small></span><span class="cklct" style="background:${badgeBg};color:${badgeCol}">${statusTxt}</span><span class="chev">›</span></button>
       <div class="bd">
@@ -2095,6 +2250,8 @@ function renderEnvelopes(){
         <div class="stat"><span>Balance when tracking started (${e.anchorDate})</span><span class="v">${AUD(e.anchorBalance)}</span></div>
         <div class="big"><span class="lbl">${ahead?'Spare — free to move elsewhere':'Behind — needs topping up'}</span><span class="amt ${ahead?'pos':'neg'}">${AUD(Math.abs(diff))}</span></div>
         <p class="hint" style="margin-top:6px">${AUD(e.allocation)} lands every ${periodLabel.toLowerCase()} · next expected ${nextResetDate}</p>
+        ${upcoming.length?`<div class="stat" style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px"><span>Bills due from here in 30 days (${upcoming.length})</span><span class="v" style="color:var(--bad)">-${AUD(upcomingTotal)}</span></div>
+        <div class="stat"><span>Realistically available</span><span class="v" style="color:${realistic>=0?'var(--ink)':'var(--bad)'}">${AUD(realistic)}</span></div>`:''}
 
         <div style="display:flex;gap:8px;margin-top:12px">
           <div style="flex:1"><label class="fld">Amount per period</label><input class="txt eAlloc" type="number" value="${e.allocation}"></div>
@@ -2112,7 +2269,7 @@ function renderEnvelopes(){
             const rows=transactions.filter(t=>t.accountName===acct.name).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
             return rows.length?rows.map(t=>{
               const amt=parseFloat(t.amount)||0,inc=amt>0;
-              return `<div class="bx-tx"><span class="d">${t.description||'—'}</span><span class="m">${t.date}</span><span class="a ${inc?'pos':'neg'}">${inc?'+':'-'}${AUD(Math.abs(amt))}</span></div>`;
+              return `<div class="bx-tx"><span class="d">${t.description||'—'}</span><span class="m">${t.date}</span><span class="a ${inc?'pos':'neg'}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span></div>`;
             }).join(''):'<p class="hint" style="margin:4px 0">No transactions yet.</p>';
           })():''
         }</div>
