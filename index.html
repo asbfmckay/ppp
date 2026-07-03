@@ -1317,26 +1317,46 @@ function createFromUnmatched(name,person){
   save();renderHabits();toast('Habit created &amp; filled');
 }
 let unmatchedOpen=false;
+let unmatchedFilter='all';
 function renderUnmatched(){
   const w=document.getElementById('unmatchedWrap');if(!w)return;w.innerHTML='';
   // refresh people datalist
   const dl=document.getElementById('peopleList');if(dl)dl.innerHTML=knownPeople().map(p=>`<option value="${p}">`).join('');
   if(!lastUnmatched.length)return;
+
+  const filterOpts=['all',...HOUSEHOLD,'other'];
+  const filtered=unmatchedFilter==='all'?lastUnmatched:lastUnmatched.filter(u=>{
+    const p=mapPersonAlias((u.person||'').trim());
+    return unmatchedFilter==='other'?!HOUSEHOLD.includes(p):p===unmatchedFilter;
+  });
+
   const item=document.createElement('div');item.className='item'+(unmatchedOpen?' open':'');
   item.innerHTML=`<button class="hd"><span class="n">⛓</span><span style="flex:1">Unmatched from Skylight</span><span class="cklct">${lastUnmatched.length}</span><span class="chev">›</span></button>
     <div class="bd">
       <p class="hint" style="margin:0 0 10px">Routine/person combinations synced with no matching habit. Create one in a tap — it fills from the last sync.</p>
+      <div class="umfilter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div class="umlist"></div>
     </div>`;
   item.querySelector('.hd').onclick=()=>{unmatchedOpen=!unmatchedOpen;renderUnmatched();};
+
+  const filterWrap=item.querySelector('.umfilter');
+  filterOpts.forEach(f=>{
+    const btn=document.createElement('button');
+    btn.className='pill'+(unmatchedFilter===f?' tf':'');
+    btn.style.cssText='cursor:pointer;font-family:inherit;'+(unmatchedFilter===f?'background:var(--plum);color:#fff;border-color:var(--plum)':'');
+    btn.textContent=f==='all'?'All':f==='other'?'Other':f;
+    btn.onclick=()=>{unmatchedFilter=f;renderUnmatched();};
+    filterWrap.appendChild(btn);
+  });
+
   const list=item.querySelector('.umlist');
-  lastUnmatched.slice(0,40).forEach(u=>{
+  if(!filtered.length){list.innerHTML='<p class="hint" style="margin:4px 0">Nothing here for this filter.</p>';}
+  filtered.forEach(u=>{
     const row=document.createElement('div');row.className='umrow';
     row.innerHTML=`<div class="t">${u.name}${u.person?`<small>${u.person}</small>`:''}</div>
       <span class="cnt">${u.count}×</span><button class="mk">+ Habit</button>`;
     row.querySelector('.mk').onclick=()=>createFromUnmatched(u.name,u.person);
     list.appendChild(row);});
-  if(lastUnmatched.length>40){const m=document.createElement('p');m.className='hint';m.textContent='+ '+(lastUnmatched.length-40)+' more…';list.appendChild(m);}
   const wrapAcc=document.createElement('div');wrapAcc.className='acc';wrapAcc.appendChild(item);
   w.appendChild(wrapAcc);
 }
@@ -1622,14 +1642,21 @@ function dualLineSvg(labels,seriesA,seriesB,colorA,colorB){
 function signedLineSvg(labels,values){
   const n=labels.length;if(n<2)return '<p class="hint" style="margin:0">Not enough history yet.</p>';
   const w=560,h=140,pad=10,botPad=22;
-  const maxAbs=Math.max(1,...values.map(v=>Math.abs(v)));
+  const usable=h-botPad-pad;
+  const maxPos=Math.max(0,...values);
+  const maxNeg=Math.max(0,...values.map(v=>-v));
+  const range=(maxPos+maxNeg)||1;
+  // The zero line sits proportionally within the plot based on how much of
+  // the range is actually negative — with no negative months at all it sits
+  // right at the bottom (matching the all-positive chart's baseline); it
+  // only shifts up to make room once real negative dips appear.
+  const baseY=pad+(maxPos/range)*usable;
   const step=(w-pad*2)/(n-1);
-  const midY=(h-botPad+pad)/2;
-  const yOf=v=>midY-(v/maxAbs)*(midY-pad);
+  const yOf=v=>baseY-(v/range)*usable;
   const pts=values.map((v,i)=>`${pad+i*step},${yOf(v)}`).join(' ');
   const lbls=labels.map((l,i)=>`<text x="${pad+i*step}" y="${h-6}" font-size="9" fill="var(--muted)" text-anchor="middle">${l}</text>`).join('');
   return `<svg width="100%" viewBox="0 0 ${w} ${h}" style="display:block;aspect-ratio:${w}/${h}" preserveAspectRatio="none">
-    <line x1="${pad}" y1="${midY}" x2="${w-pad}" y2="${midY}" stroke="var(--line)" stroke-width="1"/>
+    <line x1="${pad}" y1="${baseY}" x2="${w-pad}" y2="${baseY}" stroke="var(--line)" stroke-width="1"/>
     <polyline points="${pts}" fill="none" stroke="var(--plum)" stroke-width="1.5" stroke-linejoin="round"/>
     ${lbls}
   </svg>`;
