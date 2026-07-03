@@ -776,6 +776,16 @@ function workerBase(url){
   if(u&&!/^https?:\/\//i.test(u))u='https://'+u; // guard against a bare domain being treated as a relative link
   return u;
 }
+// Pull the real {error, detail} message out of a failed Worker response,
+// rather than just surfacing the HTTP status code — so a toast tells you
+// what actually broke without needing to dig through Worker logs.
+async function readErrorDetail(res){
+  try{
+    const body=await res.json();
+    const msg=(body.error||'')+(body.detail?' — '+body.detail:'');
+    return msg||('HTTP '+res.status);
+  }catch(_){return 'HTTP '+res.status;}
+}
 const currentMonthKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');};
 const blankReset=()=>{const o={};PILLARS.forEach(p=>o[p.k]='');return o;};
 let showArchived=false;
@@ -913,7 +923,7 @@ async function pushCloudBackup(){
       headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
       body:JSON.stringify(S)
     });
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     c.lastCloudBackup=j.savedAt||new Date().toISOString();
     localStorage.setItem(KEY,JSON.stringify(S));
@@ -931,7 +941,7 @@ async function restoreFromCloud(){
     const base=workerBase(c.url);
     const res=await fetch(base+'/backup',{headers:bxHeaders()});
     if(res.status===404){toast('No cloud backup found yet — enable auto-backup and make a change first');return;}
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     const next=normalise(j.data);
     S=next;save();renderAll();
@@ -1275,7 +1285,7 @@ async function syncSkylight(){
     const since=todayISO(new Date(Date.now()-1000*60*60*24*60));
     const u=workerBase(c.url)+'/sync?since='+since+(c.routinesOnly!==false?'&routinesOnly=1':'');
     const res=await fetch(u,{headers:c.key?{'Authorization':'Bearer '+c.key}:{}});
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     lastEvents=j.events||[];lastSince=since;
     const r=applySkylight(lastEvents,since);lastUnmatched=r.unmatched;
@@ -1406,7 +1416,9 @@ async function syncBuxfer(){
       fetch(base+'/transactions?since='+todayISO(new Date(Date.now()-1000*60*60*24*180)),{headers:bxHeaders()}),
       fetch(base+'/budgets',{headers:bxHeaders()})
     ]);
-    if(!ar.ok||!tr.ok||!br.ok)throw new Error('HTTP '+[ar.status,tr.status,br.status].join('/'));
+    if(!ar.ok)throw new Error('accounts: '+await readErrorDetail(ar));
+    if(!tr.ok)throw new Error('transactions: '+await readErrorDetail(tr));
+    if(!br.ok)throw new Error('budgets: '+await readErrorDetail(br));
     const aj=await ar.json(),tj=await tr.json(),bj=await br.json();
     c.cache.accounts=aj.accounts||[];c.cache.transactions=tj.transactions||[];c.cache.budgets=bj.budgets||[];
     c.lastSync=new Date().toISOString();save();
@@ -2313,7 +2325,7 @@ async function askBuxfer(){
     const base=workerBase(S.buxfer.url);
     const res=await fetch(base+'/ask',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
       body:JSON.stringify({question:q,context,history:bxChat.slice(0,-1)})});
-    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     bxChat.push({role:'assistant',content:j.answer||'No response.'});
   }catch(e){
