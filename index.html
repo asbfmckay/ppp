@@ -771,6 +771,83 @@ const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
 const norm=s=>(s||'').trim().toLowerCase();
 let lastUnmatched=[],lastEvents=null,lastSince='';
 const todayISO=d=>{const x=d||new Date();return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+// Generic entry-level merge: union of both arrays, keyed by id, latest
+// updatedAt wins on conflicts. Deletions are tombstones (deleted:true with
+// its own updatedAt) so a delete on one device correctly beats a stale
+// "still exists" copy from another device, rather than resurrecting it.
+function mergeCollection(localArr,cloudArr,idKey='id'){
+  const map=new Map();
+  (cloudArr||[]).forEach(item=>map.set(item[idKey],item));
+  (localArr||[]).forEach(item=>{
+    const existing=map.get(item[idKey]);
+    if(!existing){map.set(item[idKey],item);return;}
+    const lt=item.updatedAt||0,ct=existing.updatedAt||0;
+    map.set(item[idKey],lt>=ct?item:existing);
+  });
+  return Array.from(map.values());
+}
+// Latest-wins merge for a single {..., updatedAt} value (settings groups,
+// individual reset/checklist fields) — whole small object, not a collection.
+function mergeByTimestamp(local,cloud){
+  if(!cloud)return local;
+  if(!local)return cloud;
+  return (local.updatedAt||0)>=(cloud.updatedAt||0)?local:cloud;
+}
+// Merges two full app-state documents into one, entry-by-entry, so that
+// adding a habit on one device and editing a bill on another both survive —
+// instead of one device's whole save wiping out the other's.
+function mergeState(local,cloud){
+  if(!cloud)return local;
+  if(!local)return cloud;
+  const merged=JSON.parse(JSON.stringify(local));
+
+  merged.habits=mergeCollection(local.habits,cloud.habits);
+  merged.bills=mergeCollection(local.bills,cloud.bills);
+  merged.properties=mergeCollection(local.properties,cloud.properties);
+  merged.crew=mergeCollection(local.crew,cloud.crew);
+  merged.money=merged.money||{};
+  merged.money.envelopes=mergeCollection((local.money||{}).envelopes,(cloud.money||{}).envelopes);
+  merged.money.goals=mergeCollection((local.money||{}).goals,(cloud.money||{}).goals);
+
+  merged.goals={};
+  PILLARS.forEach(p=>{merged.goals[p.k]=mergeCollection((local.goals||{})[p.k],(cloud.goals||{})[p.k]);});
+
+  merged.advice={};
+  PILLARS.forEach(p=>{merged.advice[p.k]=mergeCollection((local.advice||{})[p.k],(cloud.advice||{})[p.k]);});
+
+  // Checklist: per-item {done, updatedAt} merge.
+  merged.checklist={};
+  const allCodes=new Set([...Object.keys(local.checklist||{}),...Object.keys(cloud.checklist||{})]);
+  allCodes.forEach(code=>{merged.checklist[code]=mergeByTimestamp((local.checklist||{})[code],(cloud.checklist||{})[code]);});
+
+  // Reset notes: per (month, pillar) {text, updatedAt} merge.
+  merged.reset={};
+  const allMonths=new Set([...Object.keys(local.reset||{}),...Object.keys(cloud.reset||{})]);
+  allMonths.forEach(month=>{
+    merged.reset[month]={};
+    PILLARS.forEach(p=>{
+      const lv=(local.reset||{})[month]&&local.reset[month][p.k];
+      const cv=(cloud.reset||{})[month]&&cloud.reset[month][p.k];
+      merged.reset[month][p.k]=mergeByTimestamp(lv,cv)||{text:'',updatedAt:0};
+    });
+  });
+
+  // Everything else (plan text, connection settings, financial assumptions,
+  // spend ceiling) is a single small settings document, not a collection —
+  // whichever device saved more recently overall wins for these as a group.
+  const localNewer=(local.meta&&local.meta.lastSavedAt||0)>=(cloud.meta&&cloud.meta.lastSavedAt||0);
+  if(!localNewer){
+    merged.plan=cloud.plan;
+    merged.conn=cloud.conn;
+    if(cloud.buxfer){merged.buxfer=Object.assign({},local.buxfer,{url:cloud.buxfer.url,key:cloud.buxfer.key,cloudBackup:cloud.buxfer.cloudBackup});}
+    merged.money.equity=cloud.money&&cloud.money.equity;
+    merged.money.borrow=cloud.money&&cloud.money.borrow;
+    merged.money.spendCeiling=cloud.money&&cloud.money.spendCeiling;
+    merged.profile=cloud.profile;
+  }
+
+  return merged;
+}
 function workerBase(url){
   let u=(url||'').trim().replace(/\/+$/,'');
   if(u&&!/^https?:\/\//i.test(u))u='https://'+u; // guard against a bare domain being treated as a relative link
@@ -805,14 +882,16 @@ function blank(){
 function normalise(s){
   s=Object.assign(blank(),s||{});
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
-    g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;});});
+    g.id=g.id||genId();g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;
+    g.updatedAt=g.updatedAt||Date.now();});});
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
-    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();});
+    h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();
+    h.updatedAt=h.updatedAt||Date.now();});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
   s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
-  s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';});
+  s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||Date.now();});
   s.meta=Object.assign({lastBackup:'',resetMonth:''},s.meta||{});
 
   // Reset: migrate the old flat {moral,family,...} shape into a month bucket if found
@@ -824,19 +903,32 @@ function normalise(s){
     s.reset={};
     s.reset[currentMonthKey()]=bucket;
   }
-  Object.keys(s.reset).forEach(k=>{s.reset[k]=Object.assign(blankReset(),s.reset[k]||{});});
+  Object.keys(s.reset).forEach(k=>{
+    s.reset[k]=Object.assign(blankReset(),s.reset[k]||{});
+    // Each pillar's note becomes {text, updatedAt} so two devices editing
+    // different months/pillars merge cleanly instead of one overwriting
+    // the other's note wholesale.
+    PILLARS.forEach(p=>{
+      const v=s.reset[k][p.k];
+      s.reset[k][p.k]=(v&&typeof v==='object')?{text:v.text||'',updatedAt:v.updatedAt||Date.now()}:{text:v||'',updatedAt:Date.now()};
+    });
+  });
   if(!s.meta.resetMonth)s.meta.resetMonth=currentMonthKey();
   if(!s.reset[s.meta.resetMonth])s.reset[s.meta.resetMonth]=blankReset();
 
-  // Checklist: flat {code: true/false} map against the fixed CHECKLIST content.
-  // Older builds stored an editable per-pillar list shape; that content doesn't
-  // map to the real 44-item checklist, so we simply start fresh if we see it.
+  // Checklist: {code: {done, updatedAt}} against the fixed CHECKLIST content,
+  // so a tick on one device and a tick on another merge by recency per item
+  // rather than one device's whole checklist state clobbering the other's.
   if(!s.checklist||typeof s.checklist!=='object'||Array.isArray(s.checklist.moral)){s.checklist={};}
+  Object.keys(s.checklist).forEach(code=>{
+    const v=s.checklist[code];
+    s.checklist[code]=(v&&typeof v==='object')?{done:!!v.done,updatedAt:v.updatedAt||Date.now()}:{done:!!v,updatedAt:Date.now()};
+  });
 
   s.crew=s.crew||[];
   s.crew.forEach(m=>{
     m.id=m.id||genId();m.name=m.name||'';m.role=m.role||'Employer';m.area=m.area||'';
-    m.meetings=m.meetings||[];
+    m.meetings=m.meetings||[];m.updatedAt=m.updatedAt||Date.now();
     m.meetings.forEach(mt=>{mt.id=mt.id||genId();mt.date=mt.date||'';mt.notes=mt.notes||'';});
   });
 
@@ -846,19 +938,19 @@ function normalise(s){
     p.linkedAccountId=p.linkedAccountId||'';p.manualValue=p.manualValue||0;
     p.growthRatePct=(p.growthRatePct===0||p.growthRatePct)?p.growthRatePct:5;
     p.linkedLoanId=p.linkedLoanId||'';p.manualLoanBalance=p.manualLoanBalance||0;
-    p.valuations=p.valuations||[];
+    p.valuations=p.valuations||[];p.updatedAt=p.updatedAt||Date.now();
     p.valuations.forEach(v=>{v.id=v.id||genId();v.date=v.date||'';v.value=v.value||0;v.source=v.source||'';});
   });
   s.advice=s.advice||{};
   PILLARS.forEach(p=>{s.advice[p.k]=s.advice[p.k]||[];
-    s.advice[p.k].forEach(a=>{a.id=a.id||genId();a.text=a.text||'';a.source=a.source||'';a.date=a.date||'';});});
+    s.advice[p.k].forEach(a=>{a.id=a.id||genId();a.text=a.text||'';a.source=a.source||'';a.date=a.date||'';a.updatedAt=a.updatedAt||Date.now();});});
   s.bills=s.bills||[];
   s.bills.forEach(b=>{
     b.id=b.id||genId();b.name=b.name||'';b.amount=b.amount||0;
     b.frequency=b.frequency||'monthly';b.nextDueDate=b.nextDueDate||todayISO();
     b.method=b.method||'manual';b.accountId=b.accountId||'';
     b.variable=!!b.variable;b.category=b.category||'';b.active=b.active!==false;
-    b.regular=(b.regular===undefined)?true:!!b.regular;
+    b.regular=(b.regular===undefined)?true:!!b.regular;b.updatedAt=b.updatedAt||Date.now();
   });
   s.money.equity=Object.assign({maxLvrPct:80},s.money.equity||{});
   s.money.borrow=Object.assign({grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5},s.money.borrow||{});
@@ -877,6 +969,7 @@ function normalise(s){
     e.periodDays=e.periodDays||30;
     e.anchorDate=e.anchorDate||todayISO();
     e.anchorBalance=(e.anchorBalance===0||e.anchorBalance)?e.anchorBalance:0;
+    e.updatedAt=e.updatedAt||Date.now();
     delete e.limit;
   });
 
@@ -902,6 +995,7 @@ function load(){
 }
 let saveTimer;
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
+  S.meta=S.meta||{};S.meta.lastSavedAt=Date.now();
   try{localStorage.setItem(KEY,JSON.stringify(S));
     document.getElementById('saveState').textContent='Saved · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
   catch(e){document.getElementById('saveState').textContent='In-memory only (saving is blocked in this preview)';}
@@ -918,6 +1012,19 @@ async function pushCloudBackup(){
   if(!c.cloudBackup||!c.url)return;
   try{
     const base=workerBase(c.url);
+    // Pull whatever's currently in the cloud first (could include changes
+    // from another device) and merge it with what's local, rather than
+    // blindly overwriting the cloud copy with just this device's state.
+    let cloudData=null;
+    try{
+      const getRes=await fetch(base+'/backup',{headers:bxHeaders()});
+      if(getRes.ok){const gj=await getRes.json();cloudData=gj.data;}
+    }catch(_){/* no existing cloud backup yet, or unreachable — proceed with local only */}
+
+    const merged=cloudData?mergeState(S,normalise(cloudData)):S;
+    const changed=JSON.stringify(merged)!==JSON.stringify(S);
+    if(changed){S=merged;}
+
     const res=await fetch(base+'/backup',{
       method:'POST',
       headers:Object.assign({'Content-Type':'application/json'},bxHeaders()),
@@ -928,6 +1035,7 @@ async function pushCloudBackup(){
     c.lastCloudBackup=j.savedAt||new Date().toISOString();
     localStorage.setItem(KEY,JSON.stringify(S));
     renderBackupState();
+    if(changed)renderAll(); // picked up something new from another device
   }catch(e){
     const el=document.getElementById('cloudBackupState');
     if(el)el.textContent='Cloud backup failed — will retry on next change ('+e.message+')';
@@ -936,16 +1044,15 @@ async function pushCloudBackup(){
 async function restoreFromCloud(){
   const c=S.buxfer;
   if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer first');return;}
-  if(!confirm('Replace everything on this device with the latest cloud backup? This cannot be undone locally (your current data is not auto-saved first).'))return;
+  if(!confirm('Pull in the latest cloud backup and merge it with what\'s on this device? Entries added or edited on either side are kept — this does not delete anything.'))return;
   try{
     const base=workerBase(c.url);
     const res=await fetch(base+'/backup',{headers:bxHeaders()});
     if(res.status===404){toast('No cloud backup found yet — enable auto-backup and make a change first');return;}
     if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
-    const next=normalise(j.data);
-    S=next;save();renderAll();
-    toast('Restored from cloud backup ('+new Date(j.savedAt).toLocaleString()+')');
+    S=mergeState(S,normalise(j.data));save();renderAll();
+    toast('Merged with cloud backup ('+new Date(j.savedAt).toLocaleString()+')');
   }catch(e){
     toast('Restore failed: '+e.message);
   }
@@ -997,8 +1104,8 @@ function renderReset(){
     c.innerHTML=`<div class="top"><div class="num">${i+1}</div><div><h3>${p.n}</h3><small>${p.d}</small></div></div>
       <textarea placeholder="Where are you right now? What needs to change?"></textarea>
       <div class="acc" style="margin-top:12px"></div>`;
-    const ta=c.querySelector('textarea');ta.value=bucket[p.k]||'';
-    ta.addEventListener('input',()=>{bucket[p.k]=ta.value;save();});
+    const ta=c.querySelector('textarea');ta.value=bucket[p.k].text||'';
+    ta.addEventListener('input',()=>{bucket[p.k]={text:ta.value,updatedAt:Date.now()};save();});
     c.querySelector('.acc').appendChild(adviceEl(p.k));
     w.appendChild(c);});
 }
@@ -1006,7 +1113,7 @@ function renderResetMonthNudge(){
   const n=document.getElementById('resetMonthNudge');if(!n)return;
   const real=currentMonthKey();
   const bucket=S.reset[real];
-  const started=bucket&&PILLARS.some(p=>(bucket[p.k]||'').trim().length>0);
+  const started=bucket&&PILLARS.some(p=>((bucket[p.k]&&bucket[p.k].text)||'').trim().length>0);
   if(S.meta.resetMonth!==real&&!started){
     const [y,m]=real.split('-');
     const label=MONTH_NAMES[+m-1]+' '+y;
@@ -1022,7 +1129,7 @@ function jumpToRealResetMonth(){
   save();renderReset();
 }
 function adviceEl(pk){
-  const list=S.advice[pk];
+  const list=S.advice[pk].filter(a=>!a.deleted);
   const item=document.createElement('div');item.className='item'+(openAdvice.has(pk)?' open':'');
   item.innerHTML=`<button class="hd" style="align-items:center"><span class="n">✦</span><span style="flex:1">Golden advice</span><span class="cklct">${list.length}</span><span class="chev">›</span></button>
     <div class="bd">
@@ -1040,14 +1147,14 @@ function adviceEl(pk){
     row.innerHTML=`<div style="flex:1"><div style="font-size:13px;line-height:1.55">"${a.text}"</div>
       <div style="font-size:11px;color:var(--muted);margin-top:3px">${[a.source,a.date].filter(Boolean).join(' · ')}</div></div>
       <button class="del">×</button>`;
-    row.querySelector('.del').onclick=()=>{S.advice[pk]=S.advice[pk].filter(x=>x.id!==a.id);save();renderReset();};
+    row.querySelector('.del').onclick=()=>{a.deleted=true;a.updatedAt=Date.now();save();renderReset();};
     al.appendChild(row);
   });
   item.querySelector('.ministep').onclick=()=>{
     const text=item.querySelector('.advText').value.trim();
     const source=item.querySelector('.advSource').value.trim();
     if(!text){toast('Add the advice itself first');return;}
-    S.advice[pk].push({id:genId(),text,source,date:todayISO()});
+    S.advice[pk].push({id:genId(),text,source,date:todayISO(),updatedAt:Date.now()});
     save();renderReset();
   };
   return item;
@@ -1058,7 +1165,7 @@ function goalPct(g){if(g.miles&&g.miles.length)return Math.round(g.miles.filter(
 function renderGoalsOverview(){
   const ov=document.getElementById('goalsOv');ov.innerHTML='';
   PILLARS.forEach(p=>{
-    const gs=S.goals[p.k];const avg=gs.length?Math.round(gs.reduce((t,g)=>t+goalPct(g),0)/gs.length):0;
+    const gs=S.goals[p.k].filter(g=>!g.deleted);const avg=gs.length?Math.round(gs.reduce((t,g)=>t+goalPct(g),0)/gs.length):0;
     const row=document.createElement('div');row.className='ovrow';
     row.innerHTML=`<span class="nm">${p.n}</span><div class="ovbar"><i style="width:${gs.length?avg:0}%"></i></div>
       <span class="pc">${gs.length?avg+'%':'—'}</span>`;
@@ -1069,9 +1176,9 @@ function renderGoals(){
   PILLARS.forEach(p=>{
     const c=document.createElement('div');c.className='card';
     c.innerHTML=`<span class="pillar-tag">${p.n}</span>`;
-    S.goals[p.k].forEach((goal,idx)=>c.appendChild(goalEl(p.k,goal,idx)));
+    S.goals[p.k].filter(g=>!g.deleted).forEach((goal,idx)=>c.appendChild(goalEl(p.k,goal,idx)));
     const add=document.createElement('button');add.className='addbtn';add.textContent='+ Add '+p.n.toLowerCase()+' goal';
-    add.onclick=()=>{S.goals[p.k].push({t:'',tf:'Annual',why:'',due:'',miles:[],p:0});save();renderGoals();renderGoalsOverview();};
+    add.onclick=()=>{S.goals[p.k].push({id:genId(),t:'',tf:'Annual',why:'',due:'',miles:[],p:0,updatedAt:Date.now()});save();renderGoals();renderGoalsOverview();};
     c.appendChild(add);w.appendChild(c);});
   renderGoalsOverview();
 }
@@ -1079,7 +1186,7 @@ function renderGoals(){
 function renderCrew(){
   const w=document.getElementById('crewWrap');if(!w)return;
   w.innerHTML='';
-  S.crew.forEach((m,idx)=>w.appendChild(crewEl(m,idx)));
+  S.crew.filter(m=>!m.deleted).forEach((m,idx)=>w.appendChild(crewEl(m,idx)));
 }
 function crewEl(m,idx){
   const el=document.createElement('div');el.className='goal';
@@ -1096,28 +1203,28 @@ function crewEl(m,idx){
     <div class="meetings"></div>
     <button class="ministep">+ meeting</button>`;
   const name=el.querySelector('.title');name.value=m.name;
-  name.addEventListener('input',()=>{m.name=name.value;save();});
-  el.querySelector('.del').onclick=()=>{S.crew.splice(idx,1);save();renderCrew();};
-  el.querySelector('.role').addEventListener('change',e=>{m.role=e.target.value;save();});
+  name.addEventListener('input',()=>{m.name=name.value;m.updatedAt=Date.now();save();});
+  el.querySelector('.del').onclick=()=>{m.deleted=true;m.updatedAt=Date.now();save();renderCrew();};
+  el.querySelector('.role').addEventListener('change',e=>{m.role=e.target.value;m.updatedAt=Date.now();save();});
   const area=el.querySelector('.area');area.value=m.area;
-  area.addEventListener('input',()=>{m.area=area.value;save();});
+  area.addEventListener('input',()=>{m.area=area.value;m.updatedAt=Date.now();save();});
 
   const mw=el.querySelector('.meetings');
   m.meetings.forEach((mt,mi)=>{
     const row=document.createElement('div');row.className='meetrow';
     row.innerHTML=`<input type="date"><textarea placeholder="What was discussed?"></textarea><button class="del">×</button>`;
     const dt=row.querySelector('input');dt.value=mt.date;
-    dt.addEventListener('change',()=>{mt.date=dt.value;save();renderCrew();});
+    dt.addEventListener('change',()=>{mt.date=dt.value;m.updatedAt=Date.now();save();renderCrew();});
     const nt=row.querySelector('textarea');nt.value=mt.notes;
-    nt.addEventListener('input',()=>{mt.notes=nt.value;save();});
-    row.querySelector('.del').onclick=()=>{m.meetings.splice(mi,1);save();renderCrew();};
+    nt.addEventListener('input',()=>{mt.notes=nt.value;m.updatedAt=Date.now();save();});
+    row.querySelector('.del').onclick=()=>{m.meetings.splice(mi,1);m.updatedAt=Date.now();save();renderCrew();};
     mw.appendChild(row);});
   el.querySelector('.ministep').onclick=()=>{
-    m.meetings.push({id:genId(),date:todayISO(),notes:''});save();renderCrew();};
+    m.meetings.push({id:genId(),date:todayISO(),notes:''});m.updatedAt=Date.now();save();renderCrew();};
   return el;
 }
 document.getElementById('addCrew').onclick=()=>{
-  S.crew.push({id:genId(),name:'',role:'Employer',area:'',meetings:[]});save();renderCrew();};
+  S.crew.push({id:genId(),name:'',role:'Employer',area:'',meetings:[],updatedAt:Date.now()});save();renderCrew();};
 
 function goalEl(pk,goal,idx){
   const el=document.createElement('div');el.className='goal';
@@ -1134,22 +1241,22 @@ function goalEl(pk,goal,idx){
       ${auto?`<div class="progauto"><div class="ovbar"><i style="width:${pct}%"></i></div><span class="pct">${pct}%</span></div>`
             :`<div class="prog"><input type="range" min="0" max="100" step="5" value="${goal.p}"><span class="pct">${pct}%</span></div>`}
     </div>`;
-  const title=el.querySelector('.title');title.value=goal.t;title.addEventListener('input',()=>{goal.t=title.value;save();});
-  const why=el.querySelector('.why');why.value=goal.why;why.addEventListener('input',()=>{goal.why=why.value;save();});
-  el.querySelector('.tf').addEventListener('change',e=>{goal.tf=e.target.value;save();});
-  const due=el.querySelector('.due');due.value=goal.due;due.addEventListener('change',()=>{goal.due=due.value;save();});
-  el.querySelector('.del').onclick=()=>{S.goals[pk].splice(idx,1);save();renderGoals();};
+  const title=el.querySelector('.title');title.value=goal.t;title.addEventListener('input',()=>{goal.t=title.value;goal.updatedAt=Date.now();save();});
+  const why=el.querySelector('.why');why.value=goal.why;why.addEventListener('input',()=>{goal.why=why.value;goal.updatedAt=Date.now();save();});
+  el.querySelector('.tf').addEventListener('change',e=>{goal.tf=e.target.value;goal.updatedAt=Date.now();save();});
+  const due=el.querySelector('.due');due.value=goal.due;due.addEventListener('change',()=>{goal.due=due.value;goal.updatedAt=Date.now();save();});
+  el.querySelector('.del').onclick=()=>{goal.deleted=true;goal.updatedAt=Date.now();save();renderGoals();};
   // milestones
   const mw=el.querySelector('.miles');
   (goal.miles||[]).forEach((m,mi)=>{
     const row=document.createElement('div');row.className='mile'+(m.done?' done':'');
     row.innerHTML=`<div class="box ${m.done?'on':''}">✓</div><input placeholder="Milestone…"><button class="del" style="font-size:15px">×</button>`;
     const mInp=row.querySelector('input');mInp.value=m.t;
-    mInp.addEventListener('input',()=>{m.t=mInp.value;save();});
-    row.querySelector('.box').onclick=()=>{m.done=!m.done;save();renderGoals();renderGoalsOverview();};
-    row.querySelector('.del').onclick=()=>{goal.miles.splice(mi,1);save();renderGoals();renderGoalsOverview();};
+    mInp.addEventListener('input',()=>{m.t=mInp.value;goal.updatedAt=Date.now();save();});
+    row.querySelector('.box').onclick=()=>{m.done=!m.done;goal.updatedAt=Date.now();save();renderGoals();renderGoalsOverview();};
+    row.querySelector('.del').onclick=()=>{goal.miles.splice(mi,1);goal.updatedAt=Date.now();save();renderGoals();renderGoalsOverview();};
     mw.appendChild(row);});
-  el.querySelector('.ministep').onclick=()=>{goal.miles=goal.miles||[];goal.miles.push({t:'',done:false});save();renderGoals();};
+  el.querySelector('.ministep').onclick=()=>{goal.miles=goal.miles||[];goal.miles.push({t:'',done:false});goal.updatedAt=Date.now();save();renderGoals();};
   if(!auto){const rng=el.querySelector('input[type=range]'),pc=el.querySelector('.pct');
     rng.addEventListener('input',()=>{goal.p=+rng.value;pc.textContent=goal.p+'%';save();renderGoalsOverview();});}
   return el;
@@ -1170,13 +1277,14 @@ function rate(h){const n=h.cadence==='daily'?30:h.cadence==='weekly'?12:6;let c=
   for(let i=0;i<n;i++){if(h.log[pKey(h.cadence,shift(now,h.cadence,i))])c++;}return Math.round(c/n*100);}
 function toggle(h,d){const k=pKey(h.cadence,d);if(h.log[k])delete h.log[k];else h.log[k]=true;save();renderHabits();}
 
-function addHabit(person){const id=genId();S.habits.push({id,name:'',link:'',cadence:'daily',target:0,sky:'',person:person||'',archived:false,log:{}});openHabits.add(id);save();renderHabits();}
+function addHabit(person){const id=genId();S.habits.push({id,name:'',link:'',cadence:'daily',target:0,sky:'',person:person||'',archived:false,log:{},updatedAt:Date.now()});openHabits.add(id);save();renderHabits();}
 function toggleArch(e){e.preventDefault();showArchived=!showArchived;renderHabits();}
 function renderHabits(){
   const wrap=document.getElementById('habitsWrap');wrap.innerHTML='';
   const groups=HOUSEHOLD.map(n=>({name:n,list:[]}));
   const other={name:'Family',list:[]};
   S.habits.forEach((h,idx)=>{
+    if(h.deleted)return;
     if(h.archived&&!showArchived)return;
     const g=groups.find(g=>norm(g.name)===norm(h.person));
     (g||other).list.push({h,idx});
@@ -1231,16 +1339,16 @@ function habitEl(h,idx){
     <div class="sky"><label>Skylight routine</label><input placeholder="(exact frame name — locks this habit to sync)"></div>
     <div class="miniact"><button class="arch">${h.archived?'Unarchive':'Archive'}</button></div>`;
   el.appendChild(body);
-  const nm=body.querySelector('.nm');nm.value=h.name;nm.addEventListener('input',()=>{h.name=nm.value;head.querySelector('.hname').textContent=nm.value||'Untitled habit';head.querySelector('.hname').classList.toggle('empty',!nm.value);save();});
-  body.querySelector('.cad').addEventListener('change',e=>{h.cadence=e.target.value;save();renderHabits();});
-  body.querySelector('.lk').addEventListener('change',e=>{h.link=e.target.value;save();});
-  body.querySelector('.psn').addEventListener('change',e=>{h.person=e.target.value;save();renderHabits();});
+  const nm=body.querySelector('.nm');nm.value=h.name;nm.addEventListener('input',()=>{h.name=nm.value;h.updatedAt=Date.now();head.querySelector('.hname').textContent=nm.value||'Untitled habit';head.querySelector('.hname').classList.toggle('empty',!nm.value);save();});
+  body.querySelector('.cad').addEventListener('change',e=>{h.cadence=e.target.value;h.updatedAt=Date.now();save();renderHabits();});
+  body.querySelector('.lk').addEventListener('change',e=>{h.link=e.target.value;h.updatedAt=Date.now();save();});
+  body.querySelector('.psn').addEventListener('change',e=>{h.person=e.target.value;h.updatedAt=Date.now();save();renderHabits();});
   const tgtEl=body.querySelector('.tgt');
-  if(tgtEl){tgtEl.value=h.target||'';tgtEl.addEventListener('input',()=>{h.target=+tgtEl.value||0;save();renderHabits();});}
-  const sky=body.querySelector('.sky input');sky.value=h.sky;sky.addEventListener('input',()=>{h.sky=sky.value;save();});
+  if(tgtEl){tgtEl.value=h.target||'';tgtEl.addEventListener('input',()=>{h.target=+tgtEl.value||0;h.updatedAt=Date.now();save();renderHabits();});}
+  const sky=body.querySelector('.sky input');sky.value=h.sky;sky.addEventListener('input',()=>{h.sky=sky.value;h.updatedAt=Date.now();save();});
   sky.addEventListener('change',()=>renderHabits());
-  body.querySelector('.del').onclick=()=>{S.habits.splice(idx,1);save();renderHabits();};
-  body.querySelector('.arch').onclick=()=>{h.archived=!h.archived;save();renderHabits();};
+  body.querySelector('.del').onclick=()=>{h.deleted=true;h.updatedAt=Date.now();save();renderHabits();};
+  body.querySelector('.arch').onclick=()=>{h.archived=!h.archived;h.updatedAt=Date.now();save();renderHabits();};
   const tr=body.querySelector('.track');
   if(h.cadence==='daily')tr.appendChild(dailyChain(h,ro));else tr.appendChild(periodRow(h,ro));
   const wkDone=weekCount(h);
@@ -1463,7 +1571,7 @@ function bxGroupIcon(g){
 function bxAlerts(){
   const {accounts,transactions}=bxDemoMode?BX_DEMO_CACHE:S.buxfer.cache;
   const alerts=[];
-  S.money.envelopes.forEach(e=>{
+  S.money.envelopes.filter(e=>!e.deleted).forEach(e=>{
     const {diff}=envelopeStatus(e,accounts,transactions);
     if(diff<-100){
       const acct=accounts.find(a=>String(a.id)===String(e.accountId));
@@ -1780,14 +1888,14 @@ function addBxGoal(){
   const target=parseFloat(document.getElementById('bxGoalTarget').value)||0;
   const accountId=document.getElementById('bxGoalAccount').value;
   if(!label||!target){toast('Add a label and a target amount');return;}
-  S.money.goals.push({id:genId(),label,target,accountId});save();renderBxGoals();
+  S.money.goals.push({id:genId(),label,target,accountId,updatedAt:Date.now()});save();renderBxGoals();
   document.getElementById('bxGoalLabel').value='';document.getElementById('bxGoalTarget').value='';
 }
-function delBxGoal(id){if(bxDemoMode)return;S.money.goals=S.money.goals.filter(g=>g.id!==id);save();renderBxGoals();}
+function delBxGoal(id){if(bxDemoMode)return;const g=S.money.goals.find(x=>x.id===id);if(g){g.deleted=true;g.updatedAt=Date.now();}save();renderBxGoals();}
 function renderBxGoals(){
   const w=document.getElementById('bxGoalsList');if(!w)return;
   const accounts=bxDemoMode?BX_DEMO_CACHE.accounts:S.buxfer.cache.accounts;
-  const goals=bxDemoMode?BX_DEMO_GOALS:S.money.goals;
+  const goals=bxDemoMode?BX_DEMO_GOALS:S.money.goals.filter(g=>!g.deleted);
   w.innerHTML='';
   if(!goals.length){w.innerHTML='<p class="hint" style="margin:0 0 10px">No goals yet — add one below.</p>';return;}
   goals.forEach(g=>{
@@ -1838,12 +1946,13 @@ function daysSinceValuation(p){
 }
 function addProperty(){
   const p={id:genId(),name:'',address:'',linkedAccountId:'',manualValue:0,growthRatePct:5,
-    linkedLoanId:'',manualLoanBalance:0,valuations:[]};
+    linkedLoanId:'',manualLoanBalance:0,valuations:[],updatedAt:Date.now()};
   S.properties.push(p);openProps.add(p.id);save();renderProperties();renderEquityBorrow();
 }
 function delProperty(id){
   if(!confirm('Remove this property? Its valuation history goes with it.'))return;
-  S.properties=S.properties.filter(p=>p.id!==id);save();renderProperties();renderEquityBorrow();
+  const p=S.properties.find(x=>x.id===id);if(p){p.deleted=true;p.updatedAt=Date.now();}
+  save();renderProperties();renderEquityBorrow();
 }
 function renderProperties(){
   const w=document.getElementById('propWrap');if(!w)return;
@@ -1855,8 +1964,9 @@ function renderProperties(){
   w.innerHTML=html;
 
   const list=document.getElementById('propList');
-  if(!S.properties.length){list.innerHTML='<p class="hint" style="margin:8px 0">No properties added yet.</p>';return;}
-  S.properties.forEach(p=>{
+  const liveProps=S.properties.filter(p=>!p.deleted);
+  if(!liveProps.length){list.innerHTML='<p class="hint" style="margin:8px 0">No properties added yet.</p>';return;}
+  liveProps.forEach(p=>{
     const {value,asOf,source}=propertyCurrentValue(p,accounts);
     const loanBal=propertyLoanBalance(p,accounts);
     const equity=Math.max(0,value*((S.money.equity.maxLvrPct||80)/100)-loanBal);
@@ -1895,26 +2005,26 @@ function renderProperties(){
       if(item.classList.contains('open'))openProps.add(p.id);else openProps.delete(p.id);};
 
     const nameInp=item.querySelector('.name');nameInp.value=p.name;
-    nameInp.addEventListener('input',()=>{p.name=nameInp.value;save();});
+    nameInp.addEventListener('input',()=>{p.name=nameInp.value;p.updatedAt=Date.now();save();});
 
     const linkAcct=item.querySelector('.linkAcct');linkAcct.value=p.linkedAccountId;
     const manualValRow=item.querySelector(`#manualValRow_${p.id}`);
     const manualVal=item.querySelector('.manualVal');manualVal.value=p.manualValue||'';
     manualValRow.style.display=p.linkedAccountId?'none':'block';
-    linkAcct.addEventListener('change',()=>{p.linkedAccountId=linkAcct.value;manualValRow.style.display=p.linkedAccountId?'none':'block';save();renderProperties();renderEquityBorrow();});
-    manualVal.addEventListener('input',()=>{p.manualValue=parseFloat(manualVal.value)||0;save();});
+    linkAcct.addEventListener('change',()=>{p.linkedAccountId=linkAcct.value;manualValRow.style.display=p.linkedAccountId?'none':'block';p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();});
+    manualVal.addEventListener('input',()=>{p.manualValue=parseFloat(manualVal.value)||0;p.updatedAt=Date.now();save();});
     manualVal.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
 
     const growth=item.querySelector('.growth');growth.value=p.growthRatePct;
-    growth.addEventListener('input',()=>{p.growthRatePct=parseFloat(growth.value)||0;save();});
+    growth.addEventListener('input',()=>{p.growthRatePct=parseFloat(growth.value)||0;p.updatedAt=Date.now();save();});
     growth.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
 
     const linkLoan=item.querySelector('.linkLoan');linkLoan.value=p.linkedLoanId;
     const manualLoanRow=item.querySelector(`#manualLoanRow_${p.id}`);
     const manualLoan=item.querySelector('.manualLoan');manualLoan.value=p.manualLoanBalance||'';
     manualLoanRow.style.display=p.linkedLoanId?'none':'block';
-    linkLoan.addEventListener('change',()=>{p.linkedLoanId=linkLoan.value;manualLoanRow.style.display=p.linkedLoanId?'none':'block';save();renderProperties();renderEquityBorrow();});
-    manualLoan.addEventListener('input',()=>{p.manualLoanBalance=parseFloat(manualLoan.value)||0;save();});
+    linkLoan.addEventListener('change',()=>{p.linkedLoanId=linkLoan.value;manualLoanRow.style.display=p.linkedLoanId?'none':'block';p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();});
+    manualLoan.addEventListener('input',()=>{p.manualLoanBalance=parseFloat(manualLoan.value)||0;p.updatedAt=Date.now();save();});
     manualLoan.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
 
     const valList=item.querySelector('.valList');
@@ -1924,7 +2034,7 @@ function renderProperties(){
       row.innerHTML=`<span style="flex:none;width:90px;font-size:12px;color:var(--muted)">${v.date}</span>
         <span style="flex:1;font-size:13px">${AUD(v.value)}${v.source?' · '+v.source:''}</span>
         <button class="del">×</button>`;
-      row.querySelector('.del').onclick=()=>{p.valuations=p.valuations.filter(x=>x.id!==v.id);save();renderProperties();renderEquityBorrow();};
+      row.querySelector('.del').onclick=()=>{p.valuations=p.valuations.filter(x=>x.id!==v.id);p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();};
       valList.appendChild(row);
     });
 
@@ -1934,6 +2044,7 @@ function renderProperties(){
       const src=item.querySelector('.valSource').value.trim();
       if(!amt){toast('Enter a value first');return;}
       p.valuations.push({id:genId(),date:d,value:amt,source:src});
+      p.updatedAt=Date.now();
       save();renderProperties();renderEquityBorrow();
     };
     item.querySelector('.del').onclick=()=>delProperty(p.id);
@@ -1945,10 +2056,11 @@ function renderProperties(){
 function renderEquityBorrow(){
   const w=document.getElementById('equityWrap');if(!w)return;
   const accounts=liveAccounts();
-  if(!S.properties.length){w.innerHTML='';return;}
+  const liveProps=S.properties.filter(p=>!p.deleted);
+  if(!liveProps.length){w.innerHTML='';return;}
 
   let totalValue=0,totalLoan=0;
-  S.properties.forEach(p=>{
+  liveProps.forEach(p=>{
     totalValue+=propertyCurrentValue(p,accounts).value;
     totalLoan+=propertyLoanBalance(p,accounts);
   });
@@ -2094,11 +2206,11 @@ function addBill(){
   const dueDate=document.getElementById('billDue').value||todayISO();
   const regular=document.getElementById('billRegular').checked;
   if(!name||!amount){toast('Add a name and an amount');return;}
-  S.bills.push({id:genId(),name,amount,nextDueDate:dueDate,method,accountId,variable:false,regular,category:'',active:true});
+  S.bills.push({id:genId(),name,amount,nextDueDate:dueDate,method,accountId,variable:false,regular,category:'',active:true,updatedAt:Date.now()});
   save();renderBills();renderEnvelopes();
   document.getElementById('billName').value='';document.getElementById('billAmount').value='';
 }
-function delBill(id){S.bills=S.bills.filter(b=>b.id!==id);save();renderBills();renderEnvelopes();}
+function delBill(id){const b=S.bills.find(x=>x.id===id);if(b){b.active=false;b.updatedAt=Date.now();}save();renderBills();renderEnvelopes();}
 function billBadge(dateStr){
   const d=daysUntil(dateStr);
   const overdue=d<0,soon=d<=7;
@@ -2174,16 +2286,16 @@ function renderBills(){
     item.querySelector('.hd').onclick=()=>{item.classList.toggle('open');
       if(item.classList.contains('open'))openBills.add(b.id);else openBills.delete(b.id);};
 
-    const bName=item.querySelector('.bName');bName.addEventListener('input',()=>{b.name=bName.value;save();});
-    const bAmount=item.querySelector('.bAmount');bAmount.addEventListener('input',()=>{b.amount=parseFloat(bAmount.value)||0;save();});
+    const bName=item.querySelector('.bName');bName.addEventListener('input',()=>{b.name=bName.value;b.updatedAt=Date.now();save();});
+    const bAmount=item.querySelector('.bAmount');bAmount.addEventListener('input',()=>{b.amount=parseFloat(bAmount.value)||0;b.updatedAt=Date.now();save();});
     bAmount.addEventListener('change',()=>{renderBills();renderEnvelopes();});
     const bAccount=item.querySelector('.bAccount');bAccount.value=b.accountId;
-    bAccount.addEventListener('change',()=>{b.accountId=bAccount.value;save();renderBills();renderEnvelopes();});
+    bAccount.addEventListener('change',()=>{b.accountId=bAccount.value;b.updatedAt=Date.now();save();renderBills();renderEnvelopes();});
     const bMethod=item.querySelector('.bMethod');bMethod.value=b.method;
-    bMethod.addEventListener('change',()=>{b.method=bMethod.value;save();renderBills();});
-    const bDue=item.querySelector('.bDue');bDue.addEventListener('change',()=>{b.nextDueDate=bDue.value||todayISO();save();renderBills();renderEnvelopes();});
-    item.querySelector('.bVariable').addEventListener('change',(e)=>{b.variable=e.target.checked;save();});
-    item.querySelector('.bRegular').addEventListener('change',(e)=>{b.regular=e.target.checked;save();renderBills();});
+    bMethod.addEventListener('change',()=>{b.method=bMethod.value;b.updatedAt=Date.now();save();renderBills();});
+    const bDue=item.querySelector('.bDue');bDue.addEventListener('change',()=>{b.nextDueDate=bDue.value||todayISO();b.updatedAt=Date.now();save();renderBills();renderEnvelopes();});
+    item.querySelector('.bVariable').addEventListener('change',(e)=>{b.variable=e.target.checked;b.updatedAt=Date.now();save();});
+    item.querySelector('.bRegular').addEventListener('change',(e)=>{b.regular=e.target.checked;b.updatedAt=Date.now();save();renderBills();});
 
     list.appendChild(item);
   });
@@ -2209,18 +2321,19 @@ function addEnvelope(){
   if(!accountId||!allocation){toast('Pick an account and an amount');return;}
   const accounts=liveAccounts();
   const acct=accounts.find(a=>String(a.id)===String(accountId));
-  if(S.money.envelopes.some(e=>e.accountId===accountId)){toast('That account already has a budget');return;}
+  if(S.money.envelopes.some(e=>!e.deleted&&e.accountId===accountId)){toast('That account already has a budget');return;}
   const anchorDate=todayISO();
   S.money.envelopes.push({id:genId(),accountId,label:acct?acct.name:'',allocation,periodDays,
-    anchorDate,anchorBalance:acct?(parseFloat(acct.balance)||0):0});
+    anchorDate,anchorBalance:acct?(parseFloat(acct.balance)||0):0,updatedAt:Date.now()});
   save();renderEnvelopes();
   document.getElementById('envAlloc').value='';
 }
-function delEnvelope(id){S.money.envelopes=S.money.envelopes.filter(e=>e.id!==id);save();renderEnvelopes();}
+function delEnvelope(id){const e=S.money.envelopes.find(x=>x.id===id);if(e){e.deleted=true;e.updatedAt=Date.now();}save();renderEnvelopes();}
 function recalcAnchor(id){
   const e=S.money.envelopes.find(x=>x.id===id);if(!e)return;
   const accounts=liveAccounts(),transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
   e.anchorBalance=Math.round(balanceAtDate(e.accountId,e.anchorDate,accounts,transactions)*100)/100;
+  e.updatedAt=Date.now();
   save();renderEnvelopes();
   toast('Estimated from transaction history — check it looks right');
 }
@@ -2233,13 +2346,13 @@ function renderEnvelopes(){
   const w=document.getElementById('envWrap');if(!w)return;
   const accounts=liveAccounts();
   const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
-  const usedIds=new Set(S.money.envelopes.map(e=>e.accountId));
+  const usedIds=new Set(S.money.envelopes.filter(e=>!e.deleted).map(e=>e.accountId));
   const available=accounts.filter(a=>!usedIds.has(String(a.id)));
 
   // Overall rollup — the single "in total, within our means?" number, plus an
   // optional household-wide ceiling that doesn't care how spend is split
   // across categories.
-  const totalDiff=S.money.envelopes.reduce((s,e)=>s+envelopeStatus(e,accounts,transactions).diff,0);
+  const totalDiff=S.money.envelopes.filter(e=>!e.deleted).reduce((s,e)=>s+envelopeStatus(e,accounts,transactions).diff,0);
   const everydayAccountNames=new Set(accounts.filter(a=>bxAccountType(a)==='Everyday').map(a=>a.name));
   const totalSpentThisMonth=(()=>{
     const now=new Date();const mk=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
@@ -2271,9 +2384,10 @@ function renderEnvelopes(){
   w.innerHTML=html;
 
   const list=document.getElementById('envList');
-  if(!S.money.envelopes.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No budgets set yet.</p>';return;}
+  const liveEnvs=S.money.envelopes.filter(e=>!e.deleted);
+  if(!liveEnvs.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No budgets set yet.</p>';return;}
 
-  S.money.envelopes.forEach(e=>{
+  liveEnvs.forEach(e=>{
     const {acct,currentBalance,diff,nextResetDate}=envelopeStatus(e,accounts,transactions);
     const ahead=diff>=0;
     const statusTxt=ahead?`${AUD(diff)} spare`:`${AUD(Math.abs(diff))} behind`;
@@ -2318,14 +2432,14 @@ function renderEnvelopes(){
       if(item.classList.contains('open'))openEnvs.add(e.id);else openEnvs.delete(e.id);};
 
     const eAlloc=item.querySelector('.eAlloc');
-    eAlloc.addEventListener('input',()=>{e.allocation=parseFloat(eAlloc.value)||0;save();});
+    eAlloc.addEventListener('input',()=>{e.allocation=parseFloat(eAlloc.value)||0;e.updatedAt=Date.now();save();});
     eAlloc.addEventListener('change',()=>renderEnvelopes());
     const ePeriod=item.querySelector('.ePeriod');
-    ePeriod.addEventListener('change',()=>{e.periodDays=parseFloat(ePeriod.value)||14;save();renderEnvelopes();});
+    ePeriod.addEventListener('change',()=>{e.periodDays=parseFloat(ePeriod.value)||14;e.updatedAt=Date.now();save();renderEnvelopes();});
     const eDate=item.querySelector('.eAnchorDate');
-    eDate.addEventListener('change',()=>{e.anchorDate=eDate.value||todayISO();save();renderEnvelopes();});
+    eDate.addEventListener('change',()=>{e.anchorDate=eDate.value||todayISO();e.updatedAt=Date.now();save();renderEnvelopes();});
     const eBal=item.querySelector('.eAnchorBal');
-    eBal.addEventListener('input',()=>{e.anchorBalance=parseFloat(eBal.value)||0;save();});
+    eBal.addEventListener('input',()=>{e.anchorBalance=parseFloat(eBal.value)||0;e.updatedAt=Date.now();save();});
     eBal.addEventListener('change',()=>renderEnvelopes());
 
     list.appendChild(item);
@@ -2372,7 +2486,7 @@ function renderBxChat(){
 /* MONEY */
 function checklistTotals(){
   let done=0,total=0;
-  CHECKLIST.forEach(sec=>sec.items.forEach(it=>{total++;if(S.checklist[it.c])done++;}));
+  CHECKLIST.forEach(sec=>sec.items.forEach(it=>{total++;if(S.checklist[it.c]&&S.checklist[it.c].done)done++;}));
   return {done,total};
 }
 function renderScore(){
@@ -2386,7 +2500,7 @@ function renderChecklist(){
   renderScore();
   const w=document.getElementById('checklistWrap');w.innerHTML='';
   CHECKLIST.forEach((sec,i)=>{
-    const doneCt=sec.items.filter(it=>S.checklist[it.c]).length;
+    const doneCt=sec.items.filter(it=>S.checklist[it.c]&&S.checklist[it.c].done).length;
     const item=document.createElement('div');item.className='item'+(openChecklist.has(sec.k)?' open':'');
     item.innerHTML=`<button class="hd"><span class="n">${i+1}</span><span style="flex:1;min-width:0">${sec.title.replace(/^\d+\s*·\s*/,'')}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${sec.sub}</small></span><span class="cklct">${doneCt}/${sec.items.length}</span><span class="chev">›</span></button>
       <div class="bd"><div class="ckitems"></div></div>`;
@@ -2394,10 +2508,10 @@ function renderChecklist(){
       if(item.classList.contains('open'))openChecklist.add(sec.k);else openChecklist.delete(sec.k);};
     const cw=item.querySelector('.ckitems');
     sec.items.forEach(it=>{
-      const on=!!S.checklist[it.c];
+      const on=!!(S.checklist[it.c]&&S.checklist[it.c].done);
       const row=document.createElement('div');row.className='mile'+(on?' done':'');row.style.cursor='pointer';
       row.innerHTML=`<div class="box ${on?'on':''}">✓</div><span style="flex:1;font-size:13px;line-height:1.5;padding:2px 0"><b style="color:var(--plum-soft);font-weight:700">${it.c}</b> ${it.t}</span>`;
-      row.onclick=()=>{S.checklist[it.c]=!S.checklist[it.c];save();renderChecklist();};
+      row.onclick=()=>{S.checklist[it.c]={done:!on,updatedAt:Date.now()};save();renderChecklist();};
       cw.appendChild(row);});
     w.appendChild(item);});
 }
