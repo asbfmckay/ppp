@@ -1086,6 +1086,23 @@ async function restoreFromCloud(){
     toast('Restore failed: '+e.message);
   }
 }
+// Same pull-and-merge, but silent and automatic — run on page load so a
+// refresh actually picks up whatever another device saved, not just
+// whenever you next happen to edit something yourself.
+async function autoPullCloud(){
+  const c=S.buxfer;
+  if(!c.cloudBackup||!c.url)return;
+  try{
+    const base=workerBase(c.url);
+    const res=await fetch(base+'/backup',{headers:bxHeaders()});
+    if(!res.ok)return; // no backup yet, or unreachable — stay quiet, local data is still fine
+    const j=await res.json();
+    const merged=mergeState(S,normalise(j.data));
+    if(JSON.stringify(merged)!==JSON.stringify(S)){
+      S=merged;localStorage.setItem(KEY,JSON.stringify(S));renderAll();
+    }
+  }catch(e){/* offline or unreachable — silently keep working with local data */}
+}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 function accToggle(btn){btn.parentElement.classList.toggle('open');}
 function copyCode(btn){const b=btn.parentElement.cloneNode(true);const x=b.querySelector('.cp');if(x)x.remove();
@@ -2716,6 +2733,8 @@ if(S.conn.autoSync&&S.conn.url){
   const sinceLastSky=S.conn.lastSync?Date.now()-new Date(S.conn.lastSync).getTime():Infinity;
   if(sinceLastSky>60000)syncSkylight(true);
 }
+// Pull in whatever another device may have saved since this one last loaded.
+autoPullCloud();
 </script>
 </body>
 </html>
