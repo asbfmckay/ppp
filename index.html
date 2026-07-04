@@ -578,6 +578,7 @@
           <input class="txt" id="bxUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.buxfer.url=this.value;save()">
           <input class="txt" id="bxKey" placeholder="App key (matches Worker secret)" oninput="S.buxfer.key=this.value;save()">
           <div class="syncbar"><button class="syncbtn" onclick="syncBuxfer()">⟳ Sync now</button><span class="lastsync" id="bxLastSync"></span></div>
+          <label class="rowck" style="margin-top:8px"><input type="checkbox" id="bxAutoSync" onchange="S.buxfer.autoSync=this.checked;save();"> Sync automatically when the app opens</label>
           <p class="hint">Your Buxfer email and password are never stored in this app — only in the Worker's encrypted secrets. This connection is read-only; nothing here can move money or edit Buxfer data.</p>
         </div>
       </div>
@@ -868,6 +869,7 @@ const blankReset=()=>{const o={};PILLARS.forEach(p=>o[p.k]='');return o;};
 let showArchived=false;
 
 let S=load();
+lastEvents=S.conn.lastEvents||null;lastSince=S.conn.lastSince||'';
 function blank(){
   const g={},adv={};PILLARS.forEach(p=>{g[p.k]=[];adv[p.k]=[]});
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
@@ -875,23 +877,24 @@ function blank(){
     money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],spendCeiling:0,
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
-    conn:{url:'',key:'',routinesOnly:true,lastSync:''},
-    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},
+    conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:''},
+    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true},
     meta:{lastBackup:'',resetMonth:''}};
 }
 function normalise(s){
   s=Object.assign(blank(),s||{});
+  s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:''},s.conn||{});
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
     g.id=g.id||genId();g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;
-    g.updatedAt=g.updatedAt||Date.now();});});
+    g.updatedAt=g.updatedAt||0;});});
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();
-    h.updatedAt=h.updatedAt||Date.now();});
+    h.updatedAt=h.updatedAt||0;});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
-  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:''},s.buxfer||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
-  s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||Date.now();});
+  s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||0;});
   s.meta=Object.assign({lastBackup:'',resetMonth:''},s.meta||{});
 
   // Reset: migrate the old flat {moral,family,...} shape into a month bucket if found
@@ -910,7 +913,7 @@ function normalise(s){
     // the other's note wholesale.
     PILLARS.forEach(p=>{
       const v=s.reset[k][p.k];
-      s.reset[k][p.k]=(v&&typeof v==='object')?{text:v.text||'',updatedAt:v.updatedAt||Date.now()}:{text:v||'',updatedAt:Date.now()};
+      s.reset[k][p.k]=(v&&typeof v==='object')?{text:v.text||'',updatedAt:v.updatedAt||0}:{text:v||'',updatedAt:0};
     });
   });
   if(!s.meta.resetMonth)s.meta.resetMonth=currentMonthKey();
@@ -922,13 +925,13 @@ function normalise(s){
   if(!s.checklist||typeof s.checklist!=='object'||Array.isArray(s.checklist.moral)){s.checklist={};}
   Object.keys(s.checklist).forEach(code=>{
     const v=s.checklist[code];
-    s.checklist[code]=(v&&typeof v==='object')?{done:!!v.done,updatedAt:v.updatedAt||Date.now()}:{done:!!v,updatedAt:Date.now()};
+    s.checklist[code]=(v&&typeof v==='object')?{done:!!v.done,updatedAt:v.updatedAt||0}:{done:!!v,updatedAt:0};
   });
 
   s.crew=s.crew||[];
   s.crew.forEach(m=>{
     m.id=m.id||genId();m.name=m.name||'';m.role=m.role||'Employer';m.area=m.area||'';
-    m.meetings=m.meetings||[];m.updatedAt=m.updatedAt||Date.now();
+    m.meetings=m.meetings||[];m.updatedAt=m.updatedAt||0;
     m.meetings.forEach(mt=>{mt.id=mt.id||genId();mt.date=mt.date||'';mt.notes=mt.notes||'';});
   });
 
@@ -938,19 +941,19 @@ function normalise(s){
     p.linkedAccountId=p.linkedAccountId||'';p.manualValue=p.manualValue||0;
     p.growthRatePct=(p.growthRatePct===0||p.growthRatePct)?p.growthRatePct:5;
     p.linkedLoanId=p.linkedLoanId||'';p.manualLoanBalance=p.manualLoanBalance||0;
-    p.valuations=p.valuations||[];p.updatedAt=p.updatedAt||Date.now();
+    p.valuations=p.valuations||[];p.updatedAt=p.updatedAt||0;
     p.valuations.forEach(v=>{v.id=v.id||genId();v.date=v.date||'';v.value=v.value||0;v.source=v.source||'';});
   });
   s.advice=s.advice||{};
   PILLARS.forEach(p=>{s.advice[p.k]=s.advice[p.k]||[];
-    s.advice[p.k].forEach(a=>{a.id=a.id||genId();a.text=a.text||'';a.source=a.source||'';a.date=a.date||'';a.updatedAt=a.updatedAt||Date.now();});});
+    s.advice[p.k].forEach(a=>{a.id=a.id||genId();a.text=a.text||'';a.source=a.source||'';a.date=a.date||'';a.updatedAt=a.updatedAt||0;});});
   s.bills=s.bills||[];
   s.bills.forEach(b=>{
     b.id=b.id||genId();b.name=b.name||'';b.amount=b.amount||0;
     b.frequency=b.frequency||'monthly';b.nextDueDate=b.nextDueDate||todayISO();
     b.method=b.method||'manual';b.accountId=b.accountId||'';
     b.variable=!!b.variable;b.category=b.category||'';b.active=b.active!==false;
-    b.regular=(b.regular===undefined)?true:!!b.regular;b.updatedAt=b.updatedAt||Date.now();
+    b.regular=(b.regular===undefined)?true:!!b.regular;b.updatedAt=b.updatedAt||0;
   });
   s.money.equity=Object.assign({maxLvrPct:80},s.money.equity||{});
   s.money.borrow=Object.assign({grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5},s.money.borrow||{});
@@ -969,7 +972,7 @@ function normalise(s){
     e.periodDays=e.periodDays||30;
     e.anchorDate=e.anchorDate||todayISO();
     e.anchorBalance=(e.anchorBalance===0||e.anchorBalance)?e.anchorBalance:0;
-    e.updatedAt=e.updatedAt||Date.now();
+    e.updatedAt=e.updatedAt||0;
     delete e.limit;
   });
 
@@ -1396,6 +1399,7 @@ async function syncSkylight(){
     if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     lastEvents=j.events||[];lastSince=since;
+    S.conn.lastEvents=lastEvents;S.conn.lastSince=lastSince; // survive a refresh
     const r=applySkylight(lastEvents,since);lastUnmatched=r.unmatched;
     c.lastSync=new Date().toISOString();save();renderHabits();renderConn();
     toast(r.matched+' synced · '+r.unmatched.length+' routine'+(r.unmatched.length===1?'':'s')+' unmatched');
@@ -1428,6 +1432,7 @@ let unmatchedOpen=false;
 let unmatchedFilter='all';
 function renderUnmatched(){
   const w=document.getElementById('unmatchedWrap');if(!w)return;w.innerHTML='';
+  if(lastEvents)lastUnmatched=applySkylight(lastEvents,lastSince).unmatched;
   // refresh people datalist
   const dl=document.getElementById('peopleList');if(dl)dl.innerHTML=knownPeople().map(p=>`<option value="${p}">`).join('');
   if(!lastUnmatched.length)return;
@@ -1478,6 +1483,7 @@ function renderConn(){
   const bu=document.getElementById('bxUrl');if(bu&&document.activeElement!==bu)bu.value=b.url||'';
   const bk=document.getElementById('bxKey');if(bk&&document.activeElement!==bk)bk.value=b.key||'';
   const bs=document.getElementById('bxLastSync');if(bs)bs.textContent=b.lastSync?('Last sync: '+new Date(b.lastSync).toLocaleString()):'Not synced yet';
+  const bas=document.getElementById('bxAutoSync');if(bas)bas.checked=b.autoSync!==false;
 }
 
 /* BUXFER */
@@ -1533,9 +1539,9 @@ const AUDc=n=>{const a=Math.abs(n||0),s=n<0?'-':'';
 let bxChat=[],bxAsking=false;
 
 function bxHeaders(){return S.buxfer.key?{'Authorization':'Bearer '+S.buxfer.key}:{};}
-async function syncBuxfer(){
+async function syncBuxfer(silent){
   const c=S.buxfer;
-  if(!c.url){toast('Add your Worker URL in More → Connections · Buxfer');go('more');return;}
+  if(!c.url){if(!silent){toast('Add your Worker URL in More → Connections · Buxfer');go('more');}return;}
   document.querySelectorAll('.syncbtn, .syncbtn-mini').forEach(b=>b.disabled=true);
   try{
     const base=workerBase(c.url);
@@ -1551,7 +1557,7 @@ async function syncBuxfer(){
     c.cache.accounts=aj.accounts||[];c.cache.transactions=tj.transactions||[];c.cache.budgets=bj.budgets||[];
     c.lastSync=new Date().toISOString();save();
     renderBuxfer();renderConn();
-    toast('Synced '+c.cache.accounts.length+' accounts');
+    if(!silent)toast('Synced '+c.cache.accounts.length+' accounts');
   }catch(e){toast('Buxfer sync failed: '+e.message);}
   finally{document.querySelectorAll('.syncbtn, .syncbtn-mini').forEach(b=>b.disabled=false);}
 }
@@ -2613,6 +2619,12 @@ function dismissNudge(){reminderDismissed=true;updateNudge();}
 function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderChecklist();renderCrew();renderConn();renderBuxfer();renderSecurity();renderBackupState();updateNudge();}
 renderAll();
 checkLock();
+// Auto-sync Buxfer on load if connected — throttled so rapid refreshes
+// (e.g. accidentally reloading a few times in a row) don't hammer the API.
+if(S.buxfer.autoSync&&S.buxfer.url){
+  const sinceLastSync=S.buxfer.lastSync?Date.now()-new Date(S.buxfer.lastSync).getTime():Infinity;
+  if(sinceLastSync>60000)syncBuxfer(true);
+}
 </script>
 </body>
 </html>
