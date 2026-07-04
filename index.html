@@ -567,6 +567,7 @@
           <input class="txt" id="connUrl" placeholder="Worker URL (https://…workers.dev)" oninput="S.conn.url=this.value;save()">
           <input class="txt" id="connKey" placeholder="App key (matches Worker secret)" oninput="S.conn.key=this.value;save()">
           <label class="rowck"><input type="checkbox" id="connRO" onchange="S.conn.routinesOnly=this.checked;save()"> Routines only (ignore one-off chores)</label>
+          <label class="rowck"><input type="checkbox" id="connAutoSync" onchange="S.conn.autoSync=this.checked;save()"> Sync automatically when the app opens</label>
           <div class="syncbar"><button class="syncbtn" onclick="syncSkylight()">⟳ Sync now</button><span class="lastsync"></span></div>
         </div>
       </div>
@@ -603,6 +604,19 @@
           </div>
 
           <p class="hint" style="margin-top:14px"><b>Lost the password?</b> Whoever manages this site's code can set <code class="code">APP_PASSWORD_HASH=''</code> in the file and re-deploy to remove the lock, then generate a fresh one here. Your Plan/Goals/Habits/Money data is untouched either way — only the lock screen is affected.</p>
+
+          <label class="fld" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">Hide the App key behind this same password</label>
+          <p class="hint" style="margin:0 0 10px">The real App key is never stored in this file — it's encrypted with the password above. Only someone who knows the password can unlock it, and even then it only exists in memory for that session, never saved to disk.</p>
+          <input class="txt" type="text" id="realAppKey" placeholder="Paste the real App key here">
+          <button class="syncbtn" style="margin-top:8px" onclick="genEncryptedKey()">Encrypt App key</button>
+
+          <div id="keyOut" style="display:none;margin-top:10px">
+            <p class="hint" style="margin:0 0 6px">Copy this whole line:</p>
+            <p class="code" id="keyOutVal" style="word-break:break-all;user-select:all"></p>
+            <p class="hint" style="margin-top:8px">Paste it over the line that currently reads:<br>
+              <code class="code">const ENCRYPTED_APP_KEY=null;</code><br>
+              in <code class="code">ppp-household.html</code>, save, and re-deploy. From then on, typing your app password unlocks both the app and the API key together — the App key fields disappear from Connections entirely.</p>
+          </div>
         </div>
       </div>
 
@@ -766,6 +780,17 @@ const APP_VERSION=2;
 // as '' for no password. To set or change it: More → Security → generate a
 // hash from your chosen password, paste it in below, then re-deploy this file.
 const APP_PASSWORD_HASH='3eb09be1e6e7664c214622fef02a066d72f3006bf9284b333fd523b98148ae4b';
+// Worker address — same URL for both Skylight and Buxfer, baked in so every
+// device that loads this file connects automatically. Just an address, safe
+// to expose. Leave '' to fall back to the old per-device editable field.
+const HARDCODED_WORKER_URL='https://little-sunset-b8a7.andrew-bronnia.workers.dev';
+// The App key itself is NOT hardcoded in plain form — that would be exposed
+// to anyone viewing this file's source. Instead it's encrypted with your
+// app password below; the real key only ever exists decrypted in memory,
+// for the length of your session, after you type the correct password.
+// Leave as null to fall back to the old per-device editable field.
+// Shape: {salt, iv, data} — generate via More → Security → "Encrypt App key".
+const ENCRYPTED_APP_KEY={"salt":"8d257111de1dc586be01024a06245c8c","iv":"f522558fe04bd9ac1c046b20","data":"e7be14cdc5341bdc896e584b6b285272f3c90632f036573b149bb677bb71b5a01d219f8f09ce82421c5bc89c7fa20d117cbe9c37"};
 const BACKUP_WARN_DAYS=30;
 let reminderDismissed=false;
 const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
@@ -870,6 +895,7 @@ let showArchived=false;
 
 let S=load();
 lastEvents=S.conn.lastEvents||null;lastSince=S.conn.lastSince||'';
+if(HARDCODED_WORKER_URL){S.conn.url=HARDCODED_WORKER_URL;S.buxfer.url=HARDCODED_WORKER_URL;}
 function blank(){
   const g={},adv={};PILLARS.forEach(p=>{g[p.k]=[];adv[p.k]=[]});
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
@@ -877,13 +903,13 @@ function blank(){
     money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],spendCeiling:0,
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
-    conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:''},
+    conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},
     buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true},
     meta:{lastBackup:'',resetMonth:''}};
 }
 function normalise(s){
   s=Object.assign(blank(),s||{});
-  s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:''},s.conn||{});
+  s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},s.conn||{});
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
     g.id=g.id||genId();g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;
     g.updatedAt=g.updatedAt||0;});});
@@ -1388,21 +1414,22 @@ function periodRow(h,ro){
 }
 
 /* SKYLIGHT SYNC */
-async function syncSkylight(){
+async function syncSkylight(silent){
   const c=S.conn;
-  if(!c.url){toast('Add your Worker URL in More → Connections');go('more');return;}
+  if(!c.url){if(!silent){toast('Add your Worker URL in More → Connections');go('more');}return;}
   document.querySelectorAll('.syncbtn, .syncbtn-mini').forEach(b=>b.disabled=true);
   try{
     const since=todayISO(new Date(Date.now()-1000*60*60*24*60));
     const u=workerBase(c.url)+'/sync?since='+since+(c.routinesOnly!==false?'&routinesOnly=1':'');
-    const res=await fetch(u,{headers:c.key?{'Authorization':'Bearer '+c.key}:{}});
+    const skyKey=unlockedAppKey||c.key;
+    const res=await fetch(u,{headers:skyKey?{'Authorization':'Bearer '+skyKey}:{}});
     if(!res.ok)throw new Error(await readErrorDetail(res));
     const j=await res.json();
     lastEvents=j.events||[];lastSince=since;
     S.conn.lastEvents=lastEvents;S.conn.lastSince=lastSince; // survive a refresh
     const r=applySkylight(lastEvents,since);lastUnmatched=r.unmatched;
     c.lastSync=new Date().toISOString();save();renderHabits();renderConn();
-    toast(r.matched+' synced · '+r.unmatched.length+' routine'+(r.unmatched.length===1?'':'s')+' unmatched');
+    if(!silent)toast(r.matched+' synced · '+r.unmatched.length+' routine'+(r.unmatched.length===1?'':'s')+' unmatched');
   }catch(e){toast('Sync failed: '+e.message);}
   finally{document.querySelectorAll('.syncbtn, .syncbtn-mini').forEach(b=>b.disabled=false);}
 }
@@ -1475,13 +1502,22 @@ function renderUnmatched(){
 }
 function renderConn(){
   const c=S.conn||{};
-  const u=document.getElementById('connUrl');if(u&&document.activeElement!==u)u.value=c.url||'';
-  const k=document.getElementById('connKey');if(k&&document.activeElement!==k)k.value=c.key||'';
+  const u=document.getElementById('connUrl');
+  if(u){if(HARDCODED_WORKER_URL){u.value='Set in the deployed file';u.disabled=true;}
+    else{u.disabled=false;if(document.activeElement!==u)u.value=c.url||'';}}
+  const k=document.getElementById('connKey');
+  if(k){if(ENCRYPTED_APP_KEY){k.value=unlockedAppKey?'Unlocked with your app password':'Enter your app password to unlock';k.disabled=true;}
+    else{k.disabled=false;if(document.activeElement!==k)k.value=c.key||'';}}
   const r=document.getElementById('connRO');if(r)r.checked=c.routinesOnly!==false;
+  const cas=document.getElementById('connAutoSync');if(cas)cas.checked=c.autoSync!==false;
   document.querySelectorAll('.lastsync').forEach(e=>e.textContent=c.lastSync?('Last sync: '+new Date(c.lastSync).toLocaleString()):'Not synced yet');
   const b=S.buxfer||{};
-  const bu=document.getElementById('bxUrl');if(bu&&document.activeElement!==bu)bu.value=b.url||'';
-  const bk=document.getElementById('bxKey');if(bk&&document.activeElement!==bk)bk.value=b.key||'';
+  const bu=document.getElementById('bxUrl');
+  if(bu){if(HARDCODED_WORKER_URL){bu.value='Set in the deployed file';bu.disabled=true;}
+    else{bu.disabled=false;if(document.activeElement!==bu)bu.value=b.url||'';}}
+  const bk=document.getElementById('bxKey');
+  if(bk){if(ENCRYPTED_APP_KEY){bk.value=unlockedAppKey?'Unlocked with your app password':'Enter your app password to unlock';bk.disabled=true;}
+    else{bk.disabled=false;if(document.activeElement!==bk)bk.value=b.key||'';}}
   const bs=document.getElementById('bxLastSync');if(bs)bs.textContent=b.lastSync?('Last sync: '+new Date(b.lastSync).toLocaleString()):'Not synced yet';
   const bas=document.getElementById('bxAutoSync');if(bas)bas.checked=b.autoSync!==false;
 }
@@ -1538,7 +1574,7 @@ const AUDc=n=>{const a=Math.abs(n||0),s=n<0?'-':'';
   return AUD(n);};
 let bxChat=[],bxAsking=false;
 
-function bxHeaders(){return S.buxfer.key?{'Authorization':'Bearer '+S.buxfer.key}:{};}
+function bxHeaders(){const k=unlockedAppKey||S.buxfer.key;return k?{'Authorization':'Bearer '+k}:{};}
 async function syncBuxfer(silent){
   const c=S.buxfer;
   if(!c.url){if(!silent){toast('Add your Worker URL in More → Connections · Buxfer');go('more');}return;}
@@ -2550,6 +2586,36 @@ async function sha256(text){
   const buf=await crypto.subtle.digest('SHA-256',enc);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+/* App-key encryption — the real key is never stored in plain, readable form
+   anywhere. It's encrypted with your app password; the password derives the
+   decryption key fresh each unlock, and the plaintext key only ever exists
+   in memory for that session, never written to disk or localStorage. */
+function bytesToHex(bytes){return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function hexToBytes(hex){const arr=new Uint8Array(hex.length/2);for(let i=0;i<arr.length;i++)arr[i]=parseInt(hex.substr(i*2,2),16);return arr;}
+async function deriveAesKey(password,saltHex){
+  const enc=new TextEncoder();
+  const salt=hexToBytes(saltHex);
+  const keyMaterial=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},
+    keyMaterial,{name:'AES-GCM',length:256},false,['encrypt','decrypt']
+  );
+}
+async function encryptSecret(password,plaintext){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveAesKey(password,bytesToHex(salt));
+  const enc=new TextEncoder();
+  const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(plaintext));
+  return {salt:bytesToHex(salt),iv:bytesToHex(iv),data:bytesToHex(new Uint8Array(ciphertext))};
+}
+async function decryptSecret(password,encObj){
+  const key=await deriveAesKey(password,encObj.salt);
+  const ciphertext=hexToBytes(encObj.data);
+  const plaintextBuf=await crypto.subtle.decrypt({name:'AES-GCM',iv:hexToBytes(encObj.iv)},key,ciphertext);
+  return new TextDecoder().decode(plaintextBuf);
+}
+let unlockedAppKey=null; // decrypted App key, memory-only, never persisted
 function renderSecurity(){
   const st=document.getElementById('secStatus');if(!st)return;
   st.innerHTML=APP_PASSWORD_HASH
@@ -2563,6 +2629,16 @@ async function genHash(){
   document.getElementById('hashOut').style.display='block';
   document.getElementById('hashOutVal').textContent=hash;
 }
+async function genEncryptedKey(){
+  const password=document.getElementById('newPass').value;
+  const realKey=document.getElementById('realAppKey').value.trim();
+  if(!password){toast('Type the password above first — the App key gets locked to it');return;}
+  if(!realKey){toast('Paste the real App key first');return;}
+  const enc=await encryptSecret(password,realKey);
+  document.getElementById('keyOut').style.display='block';
+  document.getElementById('keyOutVal').textContent=`const ENCRYPTED_APP_KEY=${JSON.stringify(enc)};`;
+  document.getElementById('realAppKey').value='';
+}
 function checkLock(){
   if(APP_PASSWORD_HASH&&!sessionStorage.getItem('pppUnlocked')){
     const logoSrc=document.querySelector('.hdr-logo').src;
@@ -2572,6 +2648,12 @@ function checkLock(){
     document.querySelector('main').style.visibility='hidden';
     document.querySelector('nav').style.visibility='hidden';
     setTimeout(()=>document.getElementById('lockPass').focus(),100);
+  }else if(ENCRYPTED_APP_KEY&&sessionStorage.getItem('pppUnlockedKey')){
+    // Already unlocked earlier this browser session (e.g. a page refresh) —
+    // restore the decrypted key from this session's own cache rather than
+    // needing the password again. Never touches localStorage or the file.
+    unlockedAppKey=sessionStorage.getItem('pppUnlockedKey');
+    renderConn();
   }
 }
 async function tryUnlock(){
@@ -2579,6 +2661,11 @@ async function tryUnlock(){
   const hash=await sha256(val);
   if(hash===APP_PASSWORD_HASH){
     sessionStorage.setItem('pppUnlocked','1');
+    if(ENCRYPTED_APP_KEY){
+      try{unlockedAppKey=await decryptSecret(val,ENCRYPTED_APP_KEY);sessionStorage.setItem('pppUnlockedKey',unlockedAppKey);}
+      catch(e){unlockedAppKey=null;} // shouldn't happen if set up with this same password
+      renderConn();
+    }
     document.getElementById('lockScreen').style.display='none';
     document.querySelector('header').style.visibility='';
     document.querySelector('main').style.visibility='';
@@ -2619,11 +2706,15 @@ function dismissNudge(){reminderDismissed=true;updateNudge();}
 function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderChecklist();renderCrew();renderConn();renderBuxfer();renderSecurity();renderBackupState();updateNudge();}
 renderAll();
 checkLock();
-// Auto-sync Buxfer on load if connected — throttled so rapid refreshes
-// (e.g. accidentally reloading a few times in a row) don't hammer the API.
+// Auto-sync on load if connected — throttled so rapid refreshes (e.g.
+// accidentally reloading a few times in a row) don't hammer either API.
 if(S.buxfer.autoSync&&S.buxfer.url){
   const sinceLastSync=S.buxfer.lastSync?Date.now()-new Date(S.buxfer.lastSync).getTime():Infinity;
   if(sinceLastSync>60000)syncBuxfer(true);
+}
+if(S.conn.autoSync&&S.conn.url){
+  const sinceLastSky=S.conn.lastSync?Date.now()-new Date(S.conn.lastSync).getTime():Infinity;
+  if(sinceLastSky>60000)syncSkylight(true);
 }
 </script>
 </body>
