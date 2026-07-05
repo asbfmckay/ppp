@@ -43,7 +43,7 @@
     font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
   .lock-btn:hover{background:rgba(255,255,255,.9)}
   .lock-err{font-size:12.5px;color:#F5C4B3;margin-top:12px}
-  .ad-overlay{position:fixed;inset:0;z-index:800;background:var(--paper);overflow-y:auto}
+  .ad-overlay{position:fixed;inset:0;z-index:800;background:var(--paper);overflow-y:auto;-webkit-overflow-scrolling:touch}
   .ad-hdr{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);padding:16px 18px 18px;color:#fff;position:sticky;top:0;z-index:2}
   .ad-back{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;
     padding:6px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;margin-bottom:10px}
@@ -325,7 +325,7 @@
   .bx-acctgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
   .bx-acct{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#F1EFEA;
     display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;
-    -webkit-tap-highlight-color:rgba(90,62,122,.15)}
+    touch-action:manipulation;-webkit-tap-highlight-color:rgba(90,62,122,.15)}
   .acct-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
   .bx-acct-icon{width:24px;height:24px;border-radius:7px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--plum);flex-shrink:0}
   .bx-acct .t{font-size:10.5px;color:var(--muted);margin-bottom:2px}
@@ -922,6 +922,7 @@ function mergeState(local,cloud){
   merged.money=merged.money||{};
   merged.money.envelopes=mergeCollection((local.money||{}).envelopes,(cloud.money||{}).envelopes);
   merged.money.goals=mergeCollection((local.money||{}).goals,(cloud.money||{}).goals);
+  merged.money.categoryBudgets=mergeCollection((local.money||{}).categoryBudgets,(cloud.money||{}).categoryBudgets);
 
   merged.goals={};
   PILLARS.forEach(p=>{merged.goals[p.k]=mergeCollection((local.goals||{})[p.k],(cloud.goals||{})[p.k]);});
@@ -988,11 +989,11 @@ function blank(){
   const g={},adv={};PILLARS.forEach(p=>{g[p.k]=[];adv[p.k]=[]});
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
     reset:{},goals:g,habits:[],checklist:{},actionList:{},crew:[],properties:[],advice:adv,bills:[],
-    money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],spendCeiling:0,
+    money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],categoryBudgets:[],spendCeiling:0,
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
     conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},
-    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:false},
+    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:true},
     meta:{lastBackup:'',resetMonth:''}};
 }
 function normalise(s){
@@ -1005,10 +1006,12 @@ function normalise(s){
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();
     h.updatedAt=h.updatedAt||0;});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
-  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:false},s.buxfer||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:true},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
   s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||0;});
+  s.money.categoryBudgets=s.money.categoryBudgets||[];
+  s.money.categoryBudgets.forEach(b=>{b.id=b.id||genId();b.accountId=b.accountId||'';b.tag=b.tag||'';b.limit=b.limit||0;b.deleted=!!b.deleted;b.updatedAt=b.updatedAt||0;});
   s.meta=Object.assign({lastBackup:'',resetMonth:''},s.meta||{});
 
   // Reset: migrate the old flat {moral,family,...} shape into a month bucket if found
@@ -1716,20 +1719,20 @@ const BX_DEMO_CACHE={
     {id:'9',name:'ANZ Credit Card',type:'Credit',balance:-4000}
   ],
   transactions:[
-    {date:'2026-06-28',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-134},
-    {date:'2026-06-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
-    {date:'2026-06-26',description:'Council Rates Q2',accountName:'CommBank Transaction',amount:-640},
-    {date:'2026-06-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
-    {date:'2026-06-23',description:'BP Petrol',accountName:'CommBank Transaction',amount:-89},
-    {date:'2026-06-20',description:'Strata Levy — GC',accountName:'CommBank Transaction',amount:-380},
-    {date:'2026-06-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600},
-    {date:'2026-06-15',description:'AGL Electricity',accountName:'CommBank Transaction',amount:-240},
-    {date:'2026-05-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
-    {date:'2026-05-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
-    {date:'2026-05-20',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-156},
-    {date:'2026-04-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050},
-    {date:'2026-04-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850},
-    {date:'2026-04-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600}
+    {date:'2026-06-28',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-134,type:'expense',tags:'Groceries'},
+    {date:'2026-06-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050,type:'income',tags:'Salary'},
+    {date:'2026-06-26',description:'Council Rates Q2',accountName:'CommBank Transaction',amount:-640,type:'expense',tags:'Rates'},
+    {date:'2026-06-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850,type:'income',tags:'Rent'},
+    {date:'2026-06-23',description:'BP Petrol',accountName:'CommBank Transaction',amount:-89,type:'expense',tags:'Fuel'},
+    {date:'2026-06-20',description:'Strata Levy — GC',accountName:'CommBank Transaction',amount:-380,type:'expense',tags:'Strata'},
+    {date:'2026-06-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600,type:'income',tags:'Rent'},
+    {date:'2026-06-15',description:'AGL Electricity',accountName:'CommBank Transaction',amount:-240,type:'expense',tags:'Electricity'},
+    {date:'2026-05-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050,type:'income',tags:'Salary'},
+    {date:'2026-05-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850,type:'income',tags:'Rent'},
+    {date:'2026-05-20',description:'Coles Supermarket',accountName:'CommBank Transaction',amount:-156,type:'expense',tags:'Groceries'},
+    {date:'2026-04-27',description:'Salary — Employer',accountName:'CommBank Transaction',amount:3050,type:'income',tags:'Salary'},
+    {date:'2026-04-24',description:'Rent — Brisbane IP',accountName:'Suncorp Savings',amount:1850,type:'income',tags:'Rent'},
+    {date:'2026-04-18',description:'Rent — Gold Coast IP',accountName:'Suncorp Savings',amount:1600,type:'income',tags:'Rent'}
   ],
   budgets:[
     {name:'Groceries',limit:800,currentPeriod:620},
@@ -1743,16 +1746,46 @@ const BX_DEMO_GOALS=[
   {id:'demo1',label:'Savings buffer (Suncorp)',target:40000,accountId:'3'},
   {id:'demo2',label:'Emergency fund (CommBank)',target:15000,accountId:'1'}
 ];
+BX_DEMO_CACHE.transactions=bxNormalizeTransactions(BX_DEMO_CACHE.transactions);
 function loadBxDemo(){bxDemoMode=true;renderBuxfer();toast('Showing demo data — nothing is saved or synced');}
 function exitBxDemo(){bxDemoMode=false;renderBuxfer();}
-const AUD=n=>(n<0?'-$':'$')+Math.abs(Math.round(n||0)).toLocaleString();
-const AUD2=n=>(n<0?'-$':'$')+Math.abs(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const AUD=n=>(n<0?'-$':'$')+Math.abs(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const AUD2=AUD;
 const AUDc=n=>{const a=Math.abs(n||0),s=n<0?'-':'';
   if(a>=1000000)return s+'$'+(Math.round(a/100000)/10)+'M';
   if(a>=1000)return s+'$'+Math.round(a/1000)+'k';
   return AUD(n);};
 let bxChat=[],bxAsking=false;
 
+// Buxfer's API returns `amount` as an unsigned magnitude — the actual
+// direction (money in vs out) is carried by the `type` field, not by the
+// sign of `amount` (confirmed against Buxfer's own API docs/examples,
+// where e.g. a "type":"expense" transaction still has a positive amount).
+// This was previously misread as amt>0=inflow everywhere, which is why
+// every real transaction was showing up as an inflow. We normalise the
+// sign once here, at the point transactions enter the app, so every
+// existing amt>0/amt<0 check downstream becomes correct without touching
+// each call site individually.
+function bxSignedAmount(t){
+  const raw=parseFloat(t.amount)||0;
+  const mag=Math.abs(raw);
+  const type=(t.type||'').toLowerCase();
+  const outTypes=['expense','payment','loan','paidforfriend','sharedbill','capital_loss','investment_buy'];
+  const inTypes=['income','refund','capital_gain','investment_sell','investment_dividend'];
+  if(outTypes.includes(type))return -mag;
+  if(inTypes.includes(type))return mag;
+  // transfer / settlement / no type at all (e.g. demo data) — trust
+  // whatever sign was actually supplied rather than guessing.
+  return raw;
+}
+function bxTagList(t){
+  if(Array.isArray(t.tagNames)&&t.tagNames.length)return t.tagNames.map(x=>String(x).trim()).filter(Boolean);
+  if(typeof t.tags==='string'&&t.tags.trim())return t.tags.split(',').map(x=>x.trim()).filter(Boolean);
+  return [];
+}
+function bxNormalizeTransactions(arr){
+  return (arr||[]).map(t=>Object.assign({},t,{amount:bxSignedAmount(t),_tags:bxTagList(t)}));
+}
 function bxHeaders(){const k=unlockedAppKey||S.buxfer.key;return k?{'Authorization':'Bearer '+k}:{};}
 async function syncBuxfer(silent){
   const c=S.buxfer;
@@ -1769,7 +1802,7 @@ async function syncBuxfer(silent){
     if(!tr.ok)throw new Error('transactions: '+await readErrorDetail(tr));
     if(!br.ok)throw new Error('budgets: '+await readErrorDetail(br));
     const aj=await ar.json(),tj=await tr.json(),bj=await br.json();
-    c.cache.accounts=aj.accounts||[];c.cache.transactions=tj.transactions||[];c.cache.budgets=bj.budgets||[];
+    c.cache.accounts=aj.accounts||[];c.cache.transactions=bxNormalizeTransactions(tj.transactions||[]);c.cache.budgets=bj.budgets||[];
     c.lastSync=new Date().toISOString();save();
     renderBuxfer();renderConn();
     if(!silent)toast('Synced '+c.cache.accounts.length+' accounts');
@@ -2040,7 +2073,7 @@ function renderBuxfer(){
     html+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
     groups[g].forEach(a=>{
       const bal=parseFloat(a.balance)||0;
-      html+=`<button class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
+      html+=`<button type="button" class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
         <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></button>`;
     });
     html+='</div>';
@@ -2049,6 +2082,7 @@ function renderBuxfer(){
 
   // Envelope budgets — tracked per Buxfer account, limits set here in PPP, not read from Buxfer
   html+='<div id="envWrap"></div>';
+  html+='<div id="catBudgetWrap"></div>';
   html+='<div id="billsWrap"></div>';
   html+='<div id="savingsFlowWrap"></div>';
 
@@ -2100,6 +2134,7 @@ function renderBuxfer(){
   renderEquityBorrow();
   renderBills();
   renderEnvelopes();
+  renderCategoryBudgets();
   renderSavingsFlow();
   renderBxChat();
 }
@@ -2677,6 +2712,85 @@ function renderEnvelopes(){
 
     list.appendChild(item);
   });
+}
+
+// ─── Category budgets — budgeting by Buxfer tag within an account ────────
+// Envelopes budget a whole account's balance. That works for "Savings" or
+// a single-purpose account, but not for something like "Essentials" where
+// electricity, water and internet all come out of the same account and
+// need their own limits. This tracks a monthly $ limit per (account, tag)
+// pair, spend is pulled live from Buxfer's own tags on real transactions.
+function tagsForAccount(accountId,transactions){
+  const acct=liveAccounts().find(a=>String(a.id)===String(accountId));
+  if(!acct)return [];
+  const set=new Set();
+  transactions.forEach(t=>{if(t.accountName===acct.name)(t._tags||[]).forEach(tag=>set.add(tag));});
+  return Array.from(set).sort();
+}
+function updateCatTagOptions(){
+  const accEl=document.getElementById('catBudgetAccount');if(!accEl)return;
+  const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
+  const tags=tagsForAccount(accEl.value,transactions);
+  const dl=document.getElementById('catTagOptions');
+  if(dl)dl.innerHTML=tags.map(t=>`<option value="${t}">`).join('');
+}
+function catBudgetSpent(accountId,tag,transactions){
+  const acct=liveAccounts().find(a=>String(a.id)===String(accountId));
+  if(!acct)return 0;
+  const now=new Date();const mk=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  return transactions.filter(t=>t.accountName===acct.name&&(t.date||'').slice(0,7)===mk&&(t._tags||[]).includes(tag)&&(parseFloat(t.amount)||0)<0)
+    .reduce((s,t)=>s+Math.abs(parseFloat(t.amount)||0),0);
+}
+function addCategoryBudget(){
+  if(bxDemoMode){toast('Exit demo mode to add real category budgets');return;}
+  const accountId=document.getElementById('catBudgetAccount').value;
+  const tag=document.getElementById('catBudgetTag').value.trim();
+  const limit=parseFloat(document.getElementById('catBudgetLimit').value)||0;
+  if(!accountId||!tag||!limit){toast('Pick an account, a category, and a monthly limit');return;}
+  S.money.categoryBudgets.push({id:genId(),accountId,tag,limit,updatedAt:Date.now()});
+  save();renderCategoryBudgets();
+}
+function delCategoryBudget(id){
+  const b=S.money.categoryBudgets.find(x=>x.id===id);
+  if(b){b.deleted=true;b.updatedAt=Date.now();}
+  save();renderCategoryBudgets();
+}
+function renderCategoryBudgets(){
+  const w=document.getElementById('catBudgetWrap');if(!w)return;
+  const accounts=liveAccounts();
+  const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
+  const live=S.money.categoryBudgets.filter(b=>!b.deleted);
+
+  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Category budgets</h3>
+    <p class="hint" style="margin:0 0 12px">For accounts where several bills share one account — e.g. Essentials covering electricity, water and internet — budget by Buxfer tag instead of the account's total balance.</p>
+    <div id="catBudgetList"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <select class="txt" id="catBudgetAccount" style="flex:1;min-width:140px" onchange="updateCatTagOptions()">${accountOptions(accounts).replace('— account (optional)','— choose account —')}</select>
+      <input class="txt" id="catBudgetTag" list="catTagOptions" placeholder="Category — e.g. Electricity" style="flex:1;min-width:140px">
+      <datalist id="catTagOptions"></datalist>
+      <input class="txt" id="catBudgetLimit" type="number" placeholder="Monthly limit $" style="width:140px">
+      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addCategoryBudget()">+ Add</button>
+    </div></div>`;
+  w.innerHTML=html;
+  updateCatTagOptions();
+
+  const list=document.getElementById('catBudgetList');
+  if(!live.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No category budgets set yet. Tag your transactions in Buxfer first — categories will show up in the dropdown below once an account is picked.</p>';return;}
+  list.innerHTML=live.map(b=>{
+    const acct=accounts.find(a=>String(a.id)===String(b.accountId));
+    const spent=catBudgetSpent(b.accountId,b.tag,transactions);
+    const over=spent>b.limit;
+    const pct=b.limit>0?Math.min(100,Math.round(spent/b.limit*100)):0;
+    const barCol=over?'var(--bad)':pct>=80?'#D85A30':'var(--good)';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+        <span><b>${b.tag}</b> · ${acct?acct.name:'(account removed)'}</span>
+        <span style="font-weight:700;color:${over?'var(--bad)':'var(--ink)'}">${AUD(spent)} / ${AUD(b.limit)}</span>
+      </div>
+      <div class="ovbar" style="height:6px;margin-bottom:6px"><i style="width:${pct}%;background:${barCol}"></i></div>
+      <button class="del" style="color:var(--bad);font-size:11.5px;font-weight:600" onclick="delCategoryBudget('${b.id}')">Remove</button>
+    </div>`;
+  }).join('');
 }
 
 async function askBuxfer(){
