@@ -136,6 +136,16 @@
   .goal input.why:focus{box-shadow:none;border-bottom:1px solid var(--amber)}
   .miles{margin:2px 0 6px}
   .mile{display:flex;align-items:center;gap:8px;padding:3px 0}
+  .ck-tags{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px 26px}
+  .ck-tag{font-size:10.5px;font-weight:700;color:var(--plum);background:var(--amber-soft);border:none;
+    border-radius:20px;padding:3px 9px;cursor:pointer;font-family:inherit}
+  .ck-tag:hover{background:var(--amber)}
+  .ck-subs{margin:4px 0 2px 26px;padding-left:12px;border-left:2px solid var(--line)}
+  .ck-sub-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12.5px;color:var(--ink);cursor:pointer}
+  .ck-sub-row.done span{color:var(--muted);text-decoration:line-through}
+  .ck-sub-row .box{flex:none;width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent;cursor:pointer}
+  .ck-sub-row .box.on{background:var(--good);border-color:var(--good);color:#fff}
   .meetrow{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);align-items:flex-start}
   .meetrow:last-child{border-bottom:none}
   .meetrow input[type=date]{flex:none;width:128px;font-size:12.5px;padding:6px 8px}
@@ -296,7 +306,9 @@
   /* ---- Buxfer dashboard ---- */
   .bx-hero{background:linear-gradient(135deg,var(--plum) 0%,var(--plum-deep) 100%);border-radius:var(--r);
     padding:18px 20px 20px;margin-bottom:10px;color:#fff;position:relative;overflow:hidden}
-  .bx-hero .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:6px}
+  .bx-hero .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .nw-eye{background:none;border:none;color:rgba(255,255,255,.55);padding:0;cursor:pointer;display:flex;align-items:center}
+  .nw-eye:hover{color:#fff}
   .bx-hero .val{font-family:'Manrope',sans-serif;font-size:32px;font-weight:800;letter-spacing:-.02em}
   .bx-hero .sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:4px}
   .bx-hero .row{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap}
@@ -311,7 +323,9 @@
   .bx-status.off .dot{background:var(--bad)}
   .bx-groupname{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--plum-soft);margin:14px 0 8px}
   .bx-acctgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-  .bx-acct{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#F1EFEA}
+  .bx-acct{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#F1EFEA;
+    display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;
+    -webkit-tap-highlight-color:rgba(90,62,122,.15)}
   .acct-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
   .bx-acct-icon{width:24px;height:24px;border-radius:7px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--plum);flex-shrink:0}
   .bx-acct .t{font-size:10.5px;color:var(--muted);margin-bottom:2px}
@@ -463,6 +477,10 @@
   <section class="view" data-v="goals">
     <p class="eyebrow">Step 3 · Future state</p>
     <h2>Goals</h2>
+    <div id="sprintNudge" class="nudge" style="display:none">
+      <span id="sprintNudgeTxt"></span>
+      <button onclick="startNewSprint()">Start this quarter's sprint</button>
+    </div>
     <div class="card"><label class="fld" style="margin-bottom:10px">Progress overview</label><div class="ov" id="goalsOv"></div></div>
     <p class="smart"><b>SMART:</b> Specific · Measurable · Achievable · Relevant · Time-bound.</p>
     <div id="goalsWrap"></div>
@@ -497,6 +515,12 @@
     <div class="card">
       <label class="fld" style="margin-bottom:10px">Checklist by section</label>
       <div class="acc" id="checklistWrap"></div>
+    </div>
+    <button class="addbtn" onclick="toggleActionList()" id="actionListBtn">📋 Action List</button>
+    <div class="card" id="actionListPanel" style="display:none">
+      <label class="fld" style="margin-bottom:4px">Action List</label>
+      <p class="hint" style="margin:0 0 10px">The setup tasks pulled out of the checklist above, in plain terms — tick one here and the matching checklist item ticks with it.</p>
+      <div class="acc" id="actionListWrap"></div>
     </div>
   </section>
 
@@ -680,6 +704,8 @@ const ICONS={
   arrowUpRight:'<path d="M7 17L17 7M8 7h9v9"/>',
   arrowUp:'<path d="M12 19V5M6 11l6-6 6 6"/>',
   arrowDown:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  eye:'<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:'<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 4.22-5.94M9.9 4.24A9.4 9.4 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>',
 };
 function icon(name,size){
   const s=size||16;
@@ -694,6 +720,68 @@ const PILLARS=[
   {k:'care',n:'Care for Others',d:'Be unselfish; increase your usefulness locally'}
 ];
 const TF=['Quarterly','Annual','3-Year'];
+const ACTION_LIST=[
+    {k:"foundation",title:"1 \u00b7 Foundation",items:[
+      {id:"a1",t:"Write your purpose & values document \u2014 what matters most to you individually and as a family",ref:["1.1"],tab:"plan",subs:["Share it with the household, or someone you trust \u2014 get aligned"]},
+      {id:"a2",t:"Write your short- and long-term needs document",ref:["1.2"],tab:"plan"},
+      {id:"a3",t:"Set your 3\u20135 year goals, categorised into the five pillars",ref:["1.3"],tab:"goals"}
+    ]},
+    {k:"moral",title:"2 \u00b7 Moral",items:[
+      {id:"a4",t:"Do an honest self-assessment of where you currently stand",ref:["2.1"],subs:["Identify who/what has influenced you most","Identify someone to be transparent with, who has your good at heart"]},
+      {id:"a5",t:"Write the \"weighing you down\" list",ref:["2.2"],tab:"reset",subs:["Split it into: fix immediately / start fixing / leave with the Lord","Put a monthly review of this list on the calendar"]},
+      {id:"a6",t:"Set up a moral workshop",ref:["2.3"],subs:["Pick 5 starter subjects to begin the reading programme","Set up a way to write down impressions and actually follow them up","Make sure the reading covers: all ministries, the Letters, and local ministry"]},
+      {id:"a7",t:"Establish a morning/evening rhythm",ref:["2.4"],tab:"habits",subs:["Reading","Praying","Asking for the Spirit through the day"]},
+      {id:"a8",t:"Build a regular family communication rhythm",ref:["2.6"]}
+    ]},
+    {k:"family",title:"3 \u00b7 Family",items:[
+      {id:"a9",t:"List relationships that need mending and make a start on each",ref:["3.1"]},
+      {id:"a10",t:"Identify family members who need help with financial planning",ref:["3.2"],subs:["Put an actual plan in place to close the gap"]},
+      {id:"a11",t:"Get your affairs in order",ref:["3.3"],subs:["Decide your mechanism for handling setbacks/failures/disappointments before they happen"]},
+      {id:"a12",t:"Set up a monthly family finance discussion",ref:["3.4"],tab:"reset",subs:["Confirm every family member has their own savings plan"]},
+      {id:"a13",t:"Write down what \"success\" looks like for each family member",ref:["3.5"]},
+      {id:"a14",t:"Identify your support squad and reach out to them",ref:["3.6"],tab:"plan"},
+      {id:"a15",t:"Set up an education plan for your children",ref:["3.7"]}
+    ]},
+    {k:"financial",title:"4 \u00b7 Financial",items:[
+      {id:"a16",t:"Table all debts and build a payoff plan",ref:["4.1","4.2"],subs:["Set the review cadence (monthly)"]},
+      {id:"a17",t:"Set up a budget and compare against actuals monthly",ref:["4.3"],tab:"money",subs:["Decide your worst-case-scenario buffer"]},
+      {id:"a18",t:"Get real investment/retirement advice",ref:["4.4"],subs:["Set a retirement savings target"]},
+      {id:"a19",t:"Share your PPP with your employer",ref:["4.5"],subs:["Book the actual meeting"]}
+    ]},
+    {k:"health",title:"5 \u00b7 Health",items:[
+      {id:"a20",t:"Write a nutrition & exercise plan, including alcohol-free days",ref:["5.1"],subs:["Find someone to hold you accountable to it"]},
+      {id:"a21",t:"Set up specific health habits to track",ref:["5.2"],tab:"habits"},
+      {id:"a22",t:"Book regular medical/mental health check-ups",ref:["5.3"],subs:["Include specialists if relevant"]},
+      {id:"a23",t:"Identify your red flags and write a plan to manage them",ref:["5.5"]}
+    ]},
+    {k:"care",title:"6 \u00b7 Care For Others",items:[
+      {id:"a24",t:"Commit to caring for one specific person",ref:["6.1"],subs:["Set up a record of having saints through your home"]},
+      {id:"a25",t:"Identify a specific responsibility in your local subdivision",ref:["6.2"]},
+      {id:"a26",t:"Find out the actual needs in your locality",ref:["6.3"]}
+    ]},
+    {k:"community",title:"7 \u00b7 Community",items:[
+      {id:"a27",t:"Identify a specific way to support the Ecosystem \u2014 Campus&Co., OSG, UBT, or RRT",ref:["7.1"]},
+      {id:"a28",t:"Set aside a fixed giving amount \u2014 a \"Giving\" Budget envelope",ref:["7.2"],tab:"money"},
+      {id:"a29",t:"Identify where you specifically add value locally",ref:["7.3"]}
+    ]},
+    {k:"advice",title:"8 \u00b7 Good Advice",items:[
+      {id:"a30",t:"Start a log of guidance/advice you've received",ref:["8.1"],tab:"reset",subs:["Identify specific people who could positively influence you and your family","Set a plan to hear from them more regularly"]},
+      {id:"a31",t:"Engage real Subject Matter Experts \u2014 budgeting, real estate, succession/estate planning specifically",ref:["8.2"]}
+    ]},
+    {k:"development",title:"9 \u00b7 Personal Development",items:[
+      {id:"a32",t:"Do a strengths/weaknesses assessment \u2014 a Red Chair session or similar",ref:["9.1"]},
+      {id:"a33",t:"Write an Individual Development Plan with your employer",ref:["9.2"],tab:"goals"},
+      {id:"a34",t:"Pick a study topic for your moral workshop",ref:["9.3"]}
+    ]},
+    {k:"growth",title:"10 \u00b7 Growth Mindset & Execution",items:[
+      {id:"a35",t:"Set up a mentor accountability structure",ref:["10.1"],tab:"plan"},
+      {id:"a36",t:"Learn and apply the 5Ds of High-Performance Leadership",ref:["10.2"],subs:["Plan the weekends specifically, not just weekdays"]},
+      {id:"a37",t:"Set up a daily routine and a habit tracker",ref:["10.3"],tab:"habits"},
+      {id:"a38",t:"Set a regular mentor meeting cadence \u2014 Support Crew meeting log",ref:["10.4"],tab:"plan"},
+      {id:"a39",t:"Set up 90-day sprint cycles for your goals",ref:["10.5"]},
+      {id:"a40",t:"Identify and actually eliminate specific distractions",ref:["10.6"]}
+    ]}
+];
 const CHECKLIST=[
     {k:"foundation",title:"1 \u00b7 Personal Prosperity Plan",sub:"Clarity, Hope and Confidence",items:[
       {c:"1.1",t:"Willing individuals and families, document your real purpose and values. Identify what is most important to you as an individual and / or a family. Be transparent and share with your household or with someone you trust \u2013 get aligned."},
@@ -704,7 +792,7 @@ const CHECKLIST=[
       {c:"2.1",t:"Honestly assess where you are and have resolve to act decisively. Examine who or what has influenced you most in your life. Be drastic with yourself and make a definite change to get into the clear, stay in the clear, keep short accounts and maintain self-judgement. Be transparent and keep close to someone that has your good at heart."},
       {c:"2.2",t:"Write a list of things that are likely to weigh you down and categorise \u2013 things you can do something about immediately, things you can make a start on to fix, and things you can do nothing about \u2013 leave these with the Lord. Review this list monthly."},
       {c:"2.3",t:"Set up a moral workshop for learning the principles and the history of the recovery. Write down and follow-up impressions. Have a reading program including all ministries, the Letters, and ministry given in your locality."},
-      {c:"2.4",t:"Every day, identify what equals a good day. Don't take anything for granted \u2013 you are never out of the woods. Develop and track your habits \u2013 have a morning and evening rhythm that includes reading, praying and asking for the Spirit throughout the day."},
+      {c:"2.4",t:"Every day, identify what equals a good day. Don't take anything for granted \u2013 you are never out of the woods. Develop and track your habits \u2013 Have a morning and evening rhythm that includes reading, praying and asking for the Spirit throughout the day."},
       {c:"2.5",t:"Have a consistent committal to the assembly calendar and a keen interest in the current testimony. Be loyal. Have a universal outlook."},
       {c:"2.6",t:"Build and foster a moral link with your family. Keep open and honest communication. Provide and receive admonition."}
     ]},
@@ -899,25 +987,25 @@ if(HARDCODED_WORKER_URL){S.conn.url=HARDCODED_WORKER_URL;S.buxfer.url=HARDCODED_
 function blank(){
   const g={},adv={};PILLARS.forEach(p=>{g[p.k]=[];adv[p.k]=[]});
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
-    reset:{},goals:g,habits:[],checklist:{},crew:[],properties:[],advice:adv,bills:[],
+    reset:{},goals:g,habits:[],checklist:{},actionList:{},crew:[],properties:[],advice:adv,bills:[],
     money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],spendCeiling:0,
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
     conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},
-    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true},
+    buxfer:{url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:false},
     meta:{lastBackup:'',resetMonth:''}};
 }
 function normalise(s){
   s=Object.assign(blank(),s||{});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},s.conn||{});
   PILLARS.forEach(p=>{s.goals[p.k]=s.goals[p.k]||[];s.goals[p.k].forEach(g=>{
-    g.id=g.id||genId();g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;
+    g.id=g.id||genId();g.tf=g.tf||'Annual';g.why=g.why||'';g.due=g.due||'';g.miles=g.miles||[];g.p=g.p||0;g.start=g.start||'';
     g.updatedAt=g.updatedAt||0;});});
   s.habits=s.habits||[];s.habits.forEach(h=>{h.cadence=h.cadence||'daily';h.target=h.target||0;h.sky=h.sky||'';
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();
     h.updatedAt=h.updatedAt||0;});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
-  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true},s.buxfer||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:false},s.buxfer||{});
   s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
   s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||0;});
@@ -952,6 +1040,17 @@ function normalise(s){
   Object.keys(s.checklist).forEach(code=>{
     const v=s.checklist[code];
     s.checklist[code]=(v&&typeof v==='object')?{done:!!v.done,updatedAt:v.updatedAt||0}:{done:!!v,updatedAt:0};
+  });
+
+  // Action List — a friendlier, curated view of the setup tasks bundled
+  // inside the official checklist. The main checkbox isn't stored here at
+  // all: it's derived from S.checklist, so ticking either one always stays
+  // in sync with the other. Only the extra sub-tasks (which have no
+  // equivalent in the official 44) get their own storage here.
+  s.actionList=s.actionList||{};
+  Object.keys(s.actionList).forEach(id=>{
+    const v=s.actionList[id]||{};
+    s.actionList[id]={subDone:v.subDone||[]};
   });
 
   s.crew=s.crew||[];
@@ -1224,9 +1323,48 @@ function renderGoals(){
     c.innerHTML=`<span class="pillar-tag">${p.n}</span>`;
     S.goals[p.k].filter(g=>!g.deleted).forEach((goal,idx)=>c.appendChild(goalEl(p.k,goal,idx)));
     const add=document.createElement('button');add.className='addbtn';add.textContent='+ Add '+p.n.toLowerCase()+' goal';
-    add.onclick=()=>{S.goals[p.k].push({id:genId(),t:'',tf:'Annual',why:'',due:'',miles:[],p:0,updatedAt:Date.now()});save();renderGoals();renderGoalsOverview();};
+    add.onclick=()=>{S.goals[p.k].push({id:genId(),t:'',tf:'Annual',why:'',due:'',miles:[],p:0,start:'',updatedAt:Date.now()});save();renderGoals();renderGoalsOverview();};
     c.appendChild(add);w.appendChild(c);});
   renderGoalsOverview();
+  renderSprintNudge();
+}
+function currentQuarterKey(){
+  const d=new Date();
+  return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1);
+}
+function quarterKeyOf(dateStr){
+  const d=new Date(dateStr);
+  return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1);
+}
+function allQuarterlyGoals(){
+  const out=[];
+  PILLARS.forEach(p=>S.goals[p.k].filter(g=>!g.deleted&&g.tf==='Quarterly').forEach(g=>out.push(g)));
+  return out;
+}
+function renderSprintNudge(){
+  const n=document.getElementById('sprintNudge');if(!n)return;
+  const real=currentQuarterKey();
+  const quarterly=allQuarterlyGoals();
+  const started=quarterly.some(g=>g.start&&quarterKeyOf(g.start)===real);
+  if(!started){
+    document.getElementById('sprintNudgeTxt').textContent=quarterly.length
+      ?"New quarter — last sprint's goals are still set to their old start date."
+      :'New quarter — no 90-day sprint goals set yet.';
+    n.style.display='flex';
+  }else{
+    n.style.display='none';
+  }
+}
+function startNewSprint(){
+  const quarterly=allQuarterlyGoals();
+  if(!quarterly.length){
+    toast('Add a goal below and set it to "Quarterly" to start your sprint');
+    renderSprintNudge();
+    return;
+  }
+  quarterly.forEach(g=>{g.start=todayISO();g.updatedAt=Date.now();});
+  save();renderGoals();
+  toast('This quarter\'s sprint started — countdown reset on '+quarterly.length+' goal'+(quarterly.length===1?'':'s'));
 }
 /* SUPPORT CREW */
 function renderCrew(){
@@ -1275,12 +1413,18 @@ document.getElementById('addCrew').onclick=()=>{
 function goalEl(pk,goal,idx){
   const el=document.createElement('div');el.className='goal';
   const auto=goal.miles&&goal.miles.length;const pct=goalPct(goal);
+  const isSprint=goal.tf==='Quarterly';
   el.innerHTML=`<div class="row1"><input class="title" placeholder="Describe the goal…"><button class="del">×</button></div>
     <input class="why" placeholder="Why does this matter?">
     <div class="meta">
       <select class="pill tf">${TF.map(t=>`<option ${t===goal.tf?'selected':''}>${t}</option>`).join('')}</select>
       <input class="pill due" type="date" style="color:var(--plum-soft)">
     </div>
+    <div class="sprintRow" style="display:${isSprint?'flex':'none'};gap:8px;align-items:center;margin-top:6px">
+      <label class="hint" style="margin:0;flex:none">Sprint start</label>
+      <input class="pill sprintStart" type="date" style="color:var(--plum-soft)">
+    </div>
+    <div class="sprintCountdown"></div>
     <div class="miles"></div>
     <button class="ministep">+ milestone</button>
     <div class="meta" style="margin-top:6px">
@@ -1289,8 +1433,26 @@ function goalEl(pk,goal,idx){
     </div>`;
   const title=el.querySelector('.title');title.value=goal.t;title.addEventListener('input',()=>{goal.t=title.value;goal.updatedAt=Date.now();save();});
   const why=el.querySelector('.why');why.value=goal.why;why.addEventListener('input',()=>{goal.why=why.value;goal.updatedAt=Date.now();save();});
-  el.querySelector('.tf').addEventListener('change',e=>{goal.tf=e.target.value;goal.updatedAt=Date.now();save();});
+  el.querySelector('.tf').addEventListener('change',e=>{
+    goal.tf=e.target.value;
+    if(goal.tf==='Quarterly'&&!goal.start)goal.start=todayISO(); // default to starting now
+    goal.updatedAt=Date.now();save();renderGoals();
+  });
   const due=el.querySelector('.due');due.value=goal.due;due.addEventListener('change',()=>{goal.due=due.value;goal.updatedAt=Date.now();save();});
+  const sprintStart=el.querySelector('.sprintStart');sprintStart.value=goal.start||'';
+  sprintStart.addEventListener('change',()=>{goal.start=sprintStart.value;goal.updatedAt=Date.now();save();renderGoals();});
+  if(isSprint&&goal.start){
+    const daysElapsed=Math.floor((Date.now()-new Date(goal.start).getTime())/(1000*60*60*24));
+    const daysLeft=Math.max(0,90-daysElapsed);
+    const timePct=Math.min(100,Math.max(0,Math.round(daysElapsed/90*100)));
+    const overdue=daysElapsed>90;
+    el.querySelector('.sprintCountdown').innerHTML=`<div style="margin-top:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:${overdue?'var(--bad)':'var(--muted)'};margin-bottom:3px">
+        <span>${overdue?'Sprint window closed':'Day '+Math.max(0,daysElapsed)+' of 90'}</span><span>${overdue?'time for a review':daysLeft+' days left'}</span>
+      </div>
+      <div class="ovbar" style="height:5px"><i style="width:${timePct}%;background:${overdue?'var(--bad)':'var(--amber)'}"></i></div>
+    </div>`;
+  }
   el.querySelector('.del').onclick=()=>{goal.deleted=true;goal.updatedAt=Date.now();save();renderGoals();};
   // milestones
   const mw=el.querySelector('.miles');
@@ -1837,6 +1999,7 @@ function bxMonthly(transactions){
   });
   return m;
 }
+function toggleNetWorthReveal(){S.buxfer.hideNetWorth=!S.buxfer.hideNetWorth;save();renderBuxfer();}
 function renderBuxfer(){
   const w=document.getElementById('bxWrap');if(!w)return;
   const c=S.buxfer;
@@ -1861,10 +2024,12 @@ function renderBuxfer(){
   let html=demoBanner+`<div class="bx-status"><span class="dot"></span>Connected · ${accounts.length} accounts
       ${(!bxDemoMode&&c.lastSync)?' · synced '+new Date(c.lastSync).toLocaleString():''}</div>`;
 
-  html+=`<div class="bx-hero"><div class="lbl">Net worth</div><div class="val">${AUD(nw)}</div>
+  const nwHidden=S.buxfer.hideNetWorth;
+  html+=`<div class="bx-hero"><div class="lbl">Net worth <button class="nw-eye" onclick="toggleNetWorthReveal()">${nwHidden?icon('eye',13):icon('eyeOff',13)}</button></div>
+      <div class="val">${nwHidden?'• • • • • •':AUD(nw)}</div>
       <div class="sub">Across ${accounts.length} Buxfer accounts</div>
-      <div class="row"><div><div class="v">${AUDc(assets)}</div><div class="l">Total assets</div></div>
-        <div><div class="v">${AUDc(liab)}</div><div class="l">Total liabilities</div></div></div></div>`;
+      <div class="row"><div><div class="v">${nwHidden?'••••':AUDc(assets)}</div><div class="l">Total assets</div></div>
+        <div><div class="v">${nwHidden?'••••':AUDc(liab)}</div><div class="l">Total liabilities</div></div></div></div>`;
 
   // Accounts grouped
   const groups={};
@@ -1875,8 +2040,8 @@ function renderBuxfer(){
     html+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
     groups[g].forEach(a=>{
       const bal=parseFloat(a.balance)||0;
-      html+=`<div class="bx-acct" onclick="openAcctDetail('${a.id}')" style="cursor:pointer"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
-        <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></div>`;
+      html+=`<button class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
+        <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></button>`;
     });
     html+='</div>';
   });
@@ -2564,6 +2729,8 @@ function renderScore(){
   document.getElementById('scoreRingT').textContent=Math.round(pct)+'%';
   document.getElementById('scoreText').textContent=`${done} of ${total} items`;
 }
+const CK_TAG_TAB={'Plan':'plan','Goals':'goals','Habits':'habits','Budgets':'money','Bills':'money',
+  'Properties':'money','Money':'money','Support Crew':'plan','Golden Advice':'reset','Reset':'reset'};
 function renderChecklist(){
   renderScore();
   const w=document.getElementById('checklistWrap');w.innerHTML='';
@@ -2579,7 +2746,72 @@ function renderChecklist(){
       const on=!!(S.checklist[it.c]&&S.checklist[it.c].done);
       const row=document.createElement('div');row.className='mile'+(on?' done':'');row.style.cursor='pointer';
       row.innerHTML=`<div class="box ${on?'on':''}">✓</div><span style="flex:1;font-size:13px;line-height:1.5;padding:2px 0"><b style="color:var(--plum-soft);font-weight:700">${it.c}</b> ${it.t}</span>`;
-      row.onclick=()=>{S.checklist[it.c]={done:!on,updatedAt:Date.now()};save();renderChecklist();};
+      row.onclick=()=>{S.checklist[it.c]={done:!on,updatedAt:Date.now()};save();renderChecklist();renderActionList();};
+      cw.appendChild(row);});
+    w.appendChild(item);});
+}
+
+/* ACTION LIST — a friendlier, curated view of the setup tasks bundled inside
+   the official 44-item checklist. The main checkbox here is derived from
+   the linked checklist code(s), not stored separately, so ticking either
+   one always keeps the other in sync — no risk of the two drifting apart. */
+const ACTION_TAB={'plan':'plan','goals':'goals','habits':'habits','money':'money','reset':'reset'};
+let actionListOpen=new Set();
+function toggleActionList(){
+  const panel=document.getElementById('actionListPanel');
+  const open=panel.style.display!=='none';
+  panel.style.display=open?'none':'block';
+  document.getElementById('actionListBtn').textContent=open?'📋 Action List':'📋 Hide Action List';
+  if(!open)renderActionList();
+}
+function actionItemDone(it){return it.ref.every(code=>S.checklist[code]&&S.checklist[code].done);}
+function toggleActionItem(it){
+  const makeDone=!actionItemDone(it);
+  it.ref.forEach(code=>{S.checklist[code]={done:makeDone,updatedAt:Date.now()};});
+  save();renderChecklist();renderActionList();
+}
+function renderActionList(){
+  const w=document.getElementById('actionListWrap');if(!w)return;w.innerHTML='';
+  ACTION_LIST.forEach(sec=>{
+    const doneCt=sec.items.filter(actionItemDone).length;
+    const item=document.createElement('div');item.className='item'+(actionListOpen.has(sec.k)?' open':'');
+    item.innerHTML=`<button class="hd"><span style="flex:1">${sec.title}</span><span class="cklct">${doneCt}/${sec.items.length}</span><span class="chev">›</span></button>
+      <div class="bd"><div class="alitems"></div></div>`;
+    item.querySelector('.hd').onclick=()=>{item.classList.toggle('open');
+      if(item.classList.contains('open'))actionListOpen.add(sec.k);else actionListOpen.delete(sec.k);};
+    const cw=item.querySelector('.alitems');
+    sec.items.forEach(it=>{
+      const on=actionItemDone(it);
+      const state=S.actionList[it.id]||{subDone:[]};
+      const row=document.createElement('div');row.className='mile'+(on?' done':'');row.style.cssText='cursor:pointer;flex-direction:column;align-items:stretch';
+      row.innerHTML=`<div style="display:flex;gap:8px">
+          <div class="box ${on?'on':''}" style="flex:none;margin-top:1px">✓</div>
+          <span style="flex:1;font-size:13px;line-height:1.5;padding:2px 0">${it.t}</span>
+          ${it.tab?`<button class="ck-tag" style="flex:none;align-self:flex-start;margin-top:3px">→ ${it.tab}</button>`:''}
+        </div>
+        ${it.subs?'<div class="ck-subs"></div>':''}`;
+      row.addEventListener('click',(e)=>{
+        if(e.target.closest('.ck-tag')||e.target.closest('.ck-subs'))return;
+        toggleActionItem(it);
+      });
+      const tagBtn=row.querySelector('.ck-tag');
+      if(tagBtn)tagBtn.addEventListener('click',(e)=>{e.stopPropagation();go(ACTION_TAB[it.tab]||'plan');});
+      if(it.subs){
+        const subWrap=row.querySelector('.ck-subs');
+        it.subs.forEach((subText,si)=>{
+          const subOn=!!(state.subDone&&state.subDone[si]);
+          const subRow=document.createElement('div');subRow.className='ck-sub-row'+(subOn?' done':'');
+          subRow.innerHTML=`<div class="box ${subOn?'on':''}">✓</div><span>${subText}</span>`;
+          subRow.addEventListener('click',(e)=>{
+            e.stopPropagation();
+            const cur=S.actionList[it.id]||{subDone:[]};
+            const sd=(cur.subDone||[]).slice();sd[si]=!subOn;
+            S.actionList[it.id]={subDone:sd};
+            save();renderActionList();
+          });
+          subWrap.appendChild(subRow);
+        });
+      }
       cw.appendChild(row);});
     w.appendChild(item);});
 }
@@ -2729,7 +2961,7 @@ function updateNudge(){
 }
 function dismissNudge(){reminderDismissed=true;updateNudge();}
 
-function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderChecklist();renderCrew();renderConn();renderBuxfer();renderSecurity();renderBackupState();updateNudge();}
+function renderAll(){bindSimple();renderReset();renderGoals();renderHabits();renderChecklist();renderActionList();renderCrew();renderConn();renderBuxfer();renderSecurity();renderBackupState();updateNudge();}
 renderAll();
 checkLock();
 // Auto-sync on load if connected — throttled so rapid refreshes (e.g.
