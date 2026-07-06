@@ -90,6 +90,18 @@
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
     padding:15px 16px;box-shadow:var(--sh);margin-bottom:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+  .tile-hd{display:flex;align-items:center;gap:8px;padding:15px 16px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+  .tile-chev{display:inline-flex;color:var(--plum-soft);flex-shrink:0;transition:transform .15s}
+  .tile-chev.collapsed{transform:rotate(-90deg)}
+  .tile-title{flex:1;font-size:15px;font-weight:700;color:var(--ink)}
+  .tile-arrows{display:flex;gap:2px;flex-shrink:0}
+  .tile-arrows button{width:30px;height:30px;border:1px solid var(--line);background:var(--paper);border-radius:8px;
+    color:var(--plum-soft);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    touch-action:manipulation;-webkit-tap-highlight-color:rgba(90,62,122,.15)}
+  .tile-arrows button:disabled{opacity:.3;cursor:default}
+  .tile-body{padding:0 16px 15px}
   label.fld{display:block;font-size:12px;font-weight:600;color:var(--plum-soft);margin:0 0 5px}
   textarea,input.txt,select.txt{width:100%;border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;font-size:14px;background:#F1EFEA;color:var(--ink);resize:vertical}
@@ -353,6 +365,13 @@
   .bx-tx .m{color:var(--ink);font-size:12px;flex:none;width:76px;text-align:right;font-variant-numeric:tabular-nums}
   .bx-tx .a{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
   .bx-tx .a.pos{color:var(--good)} .bx-tx .a.neg{color:var(--ink)}
+  .tx-row{padding:8px 0;border-bottom:1px dashed var(--line)}
+  .tx-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+  .tx-top .tx-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .tx-top .tx-amt{flex:none;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .tx-top .tx-amt.pos{color:var(--good)}
+  .tx-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--muted)}
+  .tx-tag{background:#F1EFEA;color:var(--plum-soft);border-radius:20px;padding:1px 8px;font-weight:600;flex:none}
   .bx-chat{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--sh)}
   .bx-chat-top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--plum)}
   .bx-chat-body{padding:12px 14px;max-height:280px;overflow-y:auto}
@@ -706,12 +725,18 @@ const ICONS={
   arrowDown:'<path d="M12 5v14M6 13l6 6 6-6"/>',
   eye:'<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff:'<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 4.22-5.94M9.9 4.24A9.4 9.4 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>',
+  chevDown:'<path d="M6 9l6 6 6-6"/>',
 };
 function icon(name,size){
   const s=size||16;
   return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-${Math.round(s*0.19)}px;flex-shrink:0" aria-hidden="true">${ICONS[name]||''}</svg>`;
 }
 
+// Money tab tiles — order here is the default; the household can reorder
+// and collapse them, stored in S.money.tileOrder / tileCollapsed. Alerts
+// and Ask AI are deliberately not part of this list — they stay pinned at
+// the bottom, not reorderable, since they're not really "budget tiles".
+const MONEY_TILE_IDS=['accounts','budgets','bills','savingsflow','cashflow','transactions','property','equity','goals'];
 const PILLARS=[
   {k:'moral',n:'Moral',d:'The backbone — get into the clear, stay accountable'},
   {k:'family',n:'Family',d:'Put your family first; restore trust, take an interest'},
@@ -990,6 +1015,7 @@ function blank(){
   return {version:APP_VERSION,profile:'Andrew & Bronnia McKay',plan:{mission:'',v0:'',v1:'',v2:'',v3:'',v4:'',ultimate:''},
     reset:{},goals:g,habits:[],checklist:{},actionList:{},crew:[],properties:[],advice:adv,bills:[],
     money:{score:'',income:[],nondisc:[],disc:[],assets:[],liab:[],goals:[],envelopes:[],categoryBudgets:[],spendCeiling:0,
+      tileOrder:MONEY_TILE_IDS.slice(),tileCollapsed:{},
       equity:{maxLvrPct:80},
       borrow:{grossIncome:220000,taxPct:32,livingExpenses:'',otherLiabilityRepay:0,assessmentRatePct:8.5}},
     conn:{url:'',key:'',routinesOnly:true,lastSync:'',lastEvents:null,lastSince:'',autoSync:true},
@@ -1006,12 +1032,15 @@ function normalise(s){
     h.archived=!!h.archived;h.log=h.log||{};h.link=h.link||'';h.person=mapPersonAlias(h.person||'');h.id=h.id||genId();
     h.updatedAt=h.updatedAt||0;});
   s.conn=Object.assign({url:'',key:'',routinesOnly:true,lastSync:''},s.conn||{});
-  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:true},s.buxfer||{});
-  s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[]},s.buxfer.cache||{});
+  s.buxfer=Object.assign({url:'',key:'',lastSync:'',cache:{accounts:[],transactions:[],budgets:[],tags:[]},cloudBackup:false,lastCloudBackup:'',autoSync:true,hideNetWorth:true},s.buxfer||{});
+  s.buxfer.cache=Object.assign({accounts:[],transactions:[],budgets:[],tags:[]},s.buxfer.cache||{});
   s.money.goals=s.money.goals||[];
   s.money.goals.forEach(g=>{g.id=g.id||genId();g.label=g.label||'';g.target=g.target||0;g.accountId=g.accountId||'';g.updatedAt=g.updatedAt||0;});
   s.money.categoryBudgets=s.money.categoryBudgets||[];
   s.money.categoryBudgets.forEach(b=>{b.id=b.id||genId();b.accountId=b.accountId||'';b.tag=b.tag||'';b.limit=b.limit||0;b.deleted=!!b.deleted;b.updatedAt=b.updatedAt||0;});
+  s.money.tileOrder=(s.money.tileOrder||[]).filter(id=>MONEY_TILE_IDS.includes(id));
+  MONEY_TILE_IDS.forEach(id=>{if(!s.money.tileOrder.includes(id))s.money.tileOrder.push(id);});
+  s.money.tileCollapsed=s.money.tileCollapsed||{};
   s.meta=Object.assign({lastBackup:'',resetMonth:''},s.meta||{});
 
   // Reset: migrate the old flat {moral,family,...} shape into a month bucket if found
@@ -1707,6 +1736,13 @@ function renderConn(){
 /* BUXFER */
 let bxDemoMode=false;
 const BX_DEMO_CACHE={
+  tags:[
+    {id:'t1',name:'Groceries',parentId:-1},{id:'t2',name:'Salary',parentId:-1},
+    {id:'t3',name:'Rates',parentId:-1},{id:'t4',name:'Rent',parentId:-1},
+    {id:'t5',name:'Fuel',parentId:-1},{id:'t6',name:'Strata',parentId:-1},
+    {id:'t7',name:'Electricity',parentId:-1},
+    {id:'t8',name:'Water',parentId:-1},{id:'t9',name:'Internet',parentId:-1}
+  ],
   accounts:[
     {id:'1',name:'CommBank Offset',type:'Savings',balance:48200},
     {id:'2',name:'CommBank Transaction',type:'Everyday',balance:3840},
@@ -1822,6 +1858,13 @@ async function syncBuxfer(silent){
     if(!br.ok)throw new Error('budgets: '+await readErrorDetail(br));
     const aj=await ar.json(),tj=await tr.json(),bj=await br.json();
     c.cache.accounts=aj.accounts||[];c.cache.transactions=bxNormalizeTransactions(tj.transactions||[]);c.cache.budgets=bj.budgets||[];
+    // Tag catalog — fetched separately and non-fatally: if the Worker
+    // hasn't been redeployed with the /tags route yet, this just falls
+    // back to an empty catalog instead of breaking the rest of the sync.
+    try{
+      const gr=await fetch(base+'/tags',{headers:bxHeaders()});
+      if(gr.ok){const gj=await gr.json();c.cache.tags=gj.tags||[];}
+    }catch(e){/* tag catalog is a nice-to-have, not required for sync to succeed */}
     c.lastSync=new Date().toISOString();save();
     renderBuxfer();renderConn();
     if(!silent)toast('Synced '+c.cache.accounts.length+' accounts');
@@ -2064,11 +2107,65 @@ function bxMonthly(transactions){
   return m;
 }
 function toggleNetWorthReveal(){S.buxfer.hideNetWorth=!S.buxfer.hideNetWorth;save();renderBuxfer();}
+const MONEY_TILE_TITLES={accounts:'Accounts',budgets:'Budgets',bills:'Upcoming bills',savingsflow:'Savings growth',
+  cashflow:'Income vs expenses',transactions:'All transactions',property:'Property portfolio',
+  equity:'Usable equity & borrowing capacity',goals:'Savings goals'};
+function tileShell(id,bodyHtml){
+  const collapsed=!!(S.money.tileCollapsed||{})[id];
+  const order=S.money.tileOrder||MONEY_TILE_IDS;
+  const i=order.indexOf(id);
+  return `<div class="tile" data-tile="${id}">
+    <div class="tile-hd" onclick="toggleTile('${id}')">
+      <span class="tile-chev${collapsed?' collapsed':''}" id="tilechev-${id}">${icon('chevDown',15)}</span>
+      <span class="tile-title">${MONEY_TILE_TITLES[id]||id}</span>
+      <span class="tile-arrows" onclick="event.stopPropagation()">
+        <button type="button" onclick="moveTile('${id}',-1)"${i<=0?' disabled':''} aria-label="Move up">↑</button>
+        <button type="button" onclick="moveTile('${id}',1)"${i>=order.length-1?' disabled':''} aria-label="Move down">↓</button>
+      </span>
+    </div>
+    <div class="tile-body" id="tilebody-${id}" style="display:${collapsed?'none':'block'}">${bodyHtml}</div>
+  </div>`;
+}
+function toggleTile(id){
+  S.money.tileCollapsed=S.money.tileCollapsed||{};
+  S.money.tileCollapsed[id]=!S.money.tileCollapsed[id];
+  save();
+  const body=document.getElementById('tilebody-'+id);
+  const chev=document.getElementById('tilechev-'+id);
+  if(body)body.style.display=S.money.tileCollapsed[id]?'none':'block';
+  if(chev)chev.classList.toggle('collapsed',!!S.money.tileCollapsed[id]);
+}
+function moveTile(id,dir){
+  const order=S.money.tileOrder;
+  const i=order.indexOf(id);
+  const j=i+dir;
+  if(i<0||j<0||j>=order.length)return;
+  [order[i],order[j]]=[order[j],order[i]];
+  S.money.updatedAt=Date.now();save();
+  // Reposition the existing tile-slot DOM nodes rather than rebuilding
+  // them — appendChild on an already-attached node just moves it, so any
+  // in-progress tap or nested accordion state elsewhere is left alone.
+  const container=document.getElementById('moneyTilesWrap');
+  if(container)order.forEach(tid=>{const node=document.getElementById('tileslot-'+tid);if(node)container.appendChild(node);});
+  renderBuxfer(); // cheap: just refreshes each tile's up/down disabled state
+}
+function ensureMoneyTileSlots(){
+  const container=document.getElementById('moneyTilesWrap');if(!container)return;
+  const order=S.money.tileOrder||MONEY_TILE_IDS;
+  const existing=Array.from(container.children).map(c=>c.id);
+  const wanted=order.map(id=>'tileslot-'+id);
+  // Only touch the DOM if the slot set/order actually changed — this is
+  // what stops a routine data sync from tearing out and recreating every
+  // account tile (and any tap in progress on one) purely because a sync
+  // finished, when the tile structure itself hasn't changed at all.
+  const same=existing.length===wanted.length&&existing.every((id,idx)=>id===wanted[idx]);
+  if(same)return;
+  container.innerHTML=wanted.map(id=>`<div id="${id}"></div>`).join('');
+}
 function renderBuxfer(){
   const w=document.getElementById('bxWrap');if(!w)return;
   const c=S.buxfer;
   const {accounts,transactions,budgets}=bxDemoMode?BX_DEMO_CACHE:c.cache;
-  const goals=bxDemoMode?BX_DEMO_GOALS:S.money.goals;
   if(!accounts.length){
     w.innerHTML=`<div class="bx-connect"><div class="ic" style="color:var(--plum-soft);margin-bottom:8px">${icon('wallet',26)}</div><h3>Connect your Buxfer account</h3>
       <p>See real balances, cashflow and budgets here instead of typing them in twice. Set up the connection once in <b>More → Connections · Buxfer</b>.</p>
@@ -2076,11 +2173,40 @@ function renderBuxfer(){
       <p class="hint" style="margin-top:12px"><a href="#" onclick="event.preventDefault();loadBxDemo()" style="color:var(--plum-soft);font-weight:600;text-decoration:none">Or preview with demo data →</a></p></div>`;
     return;
   }
-  let demoBanner='';
-  if(bxDemoMode){
-    demoBanner=`<div class="bx-alert info" style="align-items:center"><span style="flex:1"><b>Demo data</b> — this is a preview, not your real Buxfer account. Nothing here is saved.</span>
-      <button class="syncbtn" style="padding:6px 12px;font-size:12px" onclick="exitBxDemo()">Exit demo</button></div>`;
+  // Build the outer shell ONCE. On every later call (e.g. a routine sync
+  // finishing) this is never touched again — only specific tile slots
+  // below get refreshed, and several of those skip the DOM write entirely
+  // if nothing actually changed. That's deliberate: the old version
+  // rewrote this whole card's innerHTML on every sync, which could destroy
+  // an account button mid-tap (touchstart on the old node, then the node
+  // is gone by touchend) — the real cause of accounts "not opening" on
+  // mobile, where sync latency over a phone network made the race far
+  // more likely than it ever was testing on a fast desktop connection.
+  if(!document.getElementById('moneyTilesWrap')){
+    w.innerHTML=`<div id="bxDemoBanner"></div><div id="bxStatusLine"></div><div id="moneyTilesWrap"></div><div id="moneyFooterWrap"></div>`;
   }
+  document.getElementById('bxDemoBanner').innerHTML=bxDemoMode?
+    `<div class="bx-alert info" style="align-items:center"><span style="flex:1"><b>Demo data</b> — this is a preview, not your real Buxfer account. Nothing here is saved.</span>
+      <button class="syncbtn" style="padding:6px 12px;font-size:12px" onclick="exitBxDemo()">Exit demo</button></div>`:'';
+  document.getElementById('bxStatusLine').innerHTML=`<div class="bx-status"><span class="dot"></span>Connected · ${accounts.length} accounts
+      ${(!bxDemoMode&&c.lastSync)?' · synced '+new Date(c.lastSync).toLocaleString():''}</div>`;
+
+  ensureMoneyTileSlots();
+  renderAccountsTile(accounts);
+  renderEnvelopes();
+  renderBills();
+  renderSavingsFlow();
+  renderCashflowTile(transactions);
+  renderTransactionsTile();
+  renderProperties();
+  renderEquityBorrow();
+  renderGoalsTile(accounts);
+  renderMoneyFooter();
+  renderBxChat();
+}
+let _lastAccountsTileHtml=null;
+function renderAccountsTile(accounts){
+  const slot=document.getElementById('tileslot-accounts');if(!slot)return;
   const liveProps=S.properties.filter(p=>!p.deleted);
   const propByAccountId={};
   liveProps.forEach(p=>{if(p.linkedAccountId)propByAccountId[String(p.linkedAccountId)]=p;});
@@ -2098,89 +2224,102 @@ function renderBuxfer(){
   const assets=accounts.filter(a=>bxEffectiveBalance(a)>0).reduce((s,a)=>s+bxEffectiveBalance(a),0);
   const liab=accounts.filter(a=>bxEffectiveBalance(a)<0).reduce((s,a)=>s+Math.abs(bxEffectiveBalance(a)),0);
   const nw=assets-liab;
-
-  let html=demoBanner+`<div class="bx-status"><span class="dot"></span>Connected · ${accounts.length} accounts
-      ${(!bxDemoMode&&c.lastSync)?' · synced '+new Date(c.lastSync).toLocaleString():''}</div>`;
-
   const nwHidden=S.buxfer.hideNetWorth;
-  html+=`<div class="bx-hero"><div class="lbl">Net worth <button class="nw-eye" onclick="toggleNetWorthReveal()">${nwHidden?icon('eye',13):icon('eyeOff',13)}</button></div>
+
+  let body=`<div class="bx-hero"><div class="lbl">Net worth <button class="nw-eye" onclick="toggleNetWorthReveal()">${nwHidden?icon('eye',13):icon('eyeOff',13)}</button></div>
       <div class="val">${nwHidden?'• • • • • •':AUD(nw)}</div>
       <div class="sub">Across ${accounts.length} Buxfer accounts</div>
       <div class="row"><div><div class="v">${nwHidden?'••••':AUDc(assets)}</div><div class="l">Total assets</div></div>
         <div><div class="v">${nwHidden?'••••':AUDc(liab)}</div><div class="l">Total liabilities</div></div></div></div>`;
 
-  // Accounts grouped
   const groups={};
   accounts.forEach(a=>{const g=bxAccountType(a);(groups[g]=groups[g]||[]).push(a);});
   const order=['Property','Loans & credit','Superannuation','Savings','Everyday'];
-  html+='<div class="card">';
   order.filter(g=>groups[g]&&groups[g].length).forEach(g=>{
-    html+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
+    body+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
     groups[g].forEach(a=>{
       const bal=bxEffectiveBalance(a);
       const isProp=!!propByAccountId[String(a.id)];
-      html+=`<button type="button" class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${isProp?'Property · from Portfolio':(a.type||g)}</div></div>
+      body+=`<button type="button" class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${isProp?'Property · from Portfolio':(a.type||g)}</div></div>
         <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></button>`;
     });
-    html+='</div>';
+    body+='</div>';
   });
-  html+='</div>';
 
-  // Envelope budgets — tracked per Buxfer account, limits set here in PPP, not read from Buxfer
-  html+='<div id="envWrap"></div>';
-  html+='<div id="billsWrap"></div>';
-  html+='<div id="savingsFlowWrap"></div>';
-
-  // Cashflow chart
+  const fullHtml=tileShell('accounts',body);
+  if(fullHtml===_lastAccountsTileHtml)return; // nothing actually changed — don't touch the DOM at all
+  _lastAccountsTileHtml=fullHtml;
+  slot.innerHTML=fullHtml;
+}
+function renderCashflowTile(transactions){
+  const slot=document.getElementById('tileslot-cashflow');if(!slot)return;
   const monthly=bxMonthly(transactions);
   const keys=lastNMonthKeys(12);
+  let body='<p class="hint" style="margin:0">No transactions yet to chart.</p>';
   if(keys.length){
     const incVals=keys.map(k=>(monthly[k]||{}).inc||0);
     const expVals=keys.map(k=>(monthly[k]||{}).exp||0);
     const labels=keys.map(k=>new Date(k+'-01').toLocaleString('en-AU',{month:'short'}));
     const curInc=incVals[incVals.length-1]||0,curExp=expVals[expVals.length-1]||0,curNet=curInc-curExp;
-    html+=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Income vs expenses</h3>
-      <div class="stat" style="margin-top:8px"><span>This month — income</span><span class="v" style="color:var(--plum)">${AUD(curInc)}</span></div>
+    body=`<div class="stat" style="margin-top:0"><span>This month — income</span><span class="v" style="color:var(--plum)">${AUD(curInc)}</span></div>
       <div class="stat"><span>This month — expenses</span><span class="v" style="color:var(--bad)">${AUD(curExp)}</span></div>
       <div class="stat"><span>Net</span><span class="v" style="color:${curNet>=0?'var(--good)':'var(--bad)'}">${curNet>=0?'+':''}${AUD(curNet)}</span></div>
       ${dualLineSvg(labels,incVals,expVals,'var(--plum)','var(--bad)')}
       <div class="bx-legend" style="margin-top:6px"><span><span class="bx-dot" style="background:var(--plum)"></span>Income</span>
-      <span><span class="bx-dot" style="background:var(--bad)"></span>Expenses</span></div></div>`;
+      <span><span class="bx-dot" style="background:var(--bad)"></span>Expenses</span></div>`;
   }
+  slot.innerHTML=tileShell('cashflow',body);
+}
+function renderTransactionsTile(){
+  const slot=document.getElementById('tileslot-transactions');if(!slot)return;
+  const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
+  const fromEl=document.getElementById('txFrom');
+  const toEl=document.getElementById('txTo');
+  const from=fromEl?fromEl.value:todayISO(new Date(Date.now()-1000*60*60*24*90));
+  const to=toEl?toEl.value:todayISO();
+  const rows=[...transactions].filter(t=>t.date>=from&&t.date<=to).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-  html+='<div id="propWrap"></div><div id="equityWrap"></div>';
+  const listHtml=rows.length?rows.map(t=>{
+    const amt=parseFloat(t.amount)||0,inc=amt>0;
+    const tags=(t._tags||[]).join(', ');
+    return `<div class="tx-row">
+      <div class="tx-top"><span class="tx-desc">${t.description||'—'}</span><span class="tx-amt ${inc?'pos':''}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span></div>
+      <div class="tx-bottom"><span>${t.date}${t.accountName?' · '+t.accountName:''}</span>${tags?`<span class="tx-tag">${tags}</span>`:''}</div>
+    </div>`;
+  }).join(''):'<p class="hint" style="margin:8px 0">No transactions in this date range.</p>';
 
-  // Goals linked to Buxfer accounts
-  html+='<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Savings goals</h3>';
-  html+='<div id="bxGoalsList"></div>';
-  html+=`<div class="bx-goaledit">
+  const body=`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">From</label><input class="txt" type="date" id="txFrom" value="${from}" onchange="renderTransactionsTile()"></div>
+      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">To</label><input class="txt" type="date" id="txTo" value="${to}" onchange="renderTransactionsTile()"></div>
+    </div>
+    <p class="hint" style="margin:0 0 8px">${rows.length} transaction${rows.length===1?'':'s'}</p>
+    <div id="txList">${listHtml}</div>`;
+  slot.innerHTML=tileShell('transactions',body);
+}
+function renderGoalsTile(accounts){
+  const slot=document.getElementById('tileslot-goals');if(!slot)return;
+  const body=`<div id="bxGoalsList"></div>
+    <div class="bx-goaledit">
       <input class="txt" id="bxGoalLabel" placeholder="Goal — e.g. House deposit">
       <input class="txt" id="bxGoalTarget" type="number" placeholder="Target $">
       <select class="txt" id="bxGoalAccount">${accountOptions(accounts)}</select>
       <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addBxGoal()">+ Add</button>
-    </div></div>`;
-
-  // Alerts
-  html+='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Alerts</h3>';
+    </div>`;
+  slot.innerHTML=tileShell('goals',body);
+  renderBxGoals();
+}
+function renderMoneyFooter(){
+  const w=document.getElementById('moneyFooterWrap');if(!w)return;
+  let html='<div class="card"><h3 style="margin:0 0 12px;font-size:15px">Alerts</h3>';
   bxAlerts().forEach(a=>{html+=`<div class="bx-alert ${a.t}"><span style="margin-top:1px">${icon(a.icon,16)}</span><span>${a.m}</span></div>`;});
   html+='</div>';
-
-  // Ask AI
   html+=`<div class="bx-chat">
       <div class="bx-chat-top">✦ Ask about your finances</div>
       <div class="bx-chat-body" id="bxChatBody"></div>
       <div class="bx-ask-row"><input class="txt" id="bxQ" placeholder="Ask anything about your finances…" onkeydown="if(event.key==='Enter')askBuxfer()">
         <button id="bxAskBtn" class="bx-ask-diamond" onclick="askBuxfer()">✦ Ask</button></div>
     </div>`;
-
   w.innerHTML=html;
-  renderBxGoals();
-  renderProperties();
-  renderEquityBorrow();
-  renderBills();
-  renderEnvelopes();
-  renderSavingsFlow();
-  renderBxChat();
 }
 function accountOptions(accounts){
   return '<option value="">— account (optional)</option>'+accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('');
@@ -2268,13 +2407,11 @@ function delProperty(id){
   save();renderProperties();renderEquityBorrow();renderBuxfer();
 }
 function renderProperties(){
-  const w=document.getElementById('propWrap');if(!w)return;
+  const w=document.getElementById('tileslot-property');if(!w)return;
   const accounts=liveAccounts();
-  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Property portfolio</h3>
-    <div class="acc" id="propList" style="margin-top:10px"></div>
-    <button class="addbtn" onclick="addProperty()">+ Add property</button>
-  </div>`;
-  w.innerHTML=html;
+  let body=`<div class="acc" id="propList" style="margin-top:10px"></div>
+    <button class="addbtn" onclick="addProperty()">+ Add property</button>`;
+  w.innerHTML=tileShell('property',body);
 
   const list=document.getElementById('propList');
   const liveProps=S.properties.filter(p=>!p.deleted);
@@ -2371,7 +2508,7 @@ function renderProperties(){
 
 /* USABLE EQUITY + BORROWING CAPACITY */
 function renderEquityBorrow(){
-  const w=document.getElementById('equityWrap');if(!w)return;
+  const w=document.getElementById('tileslot-equity');if(!w)return;
   const accounts=liveAccounts();
   const liveProps=S.properties.filter(p=>!p.deleted);
   if(!liveProps.length){w.innerHTML='';return;}
@@ -2393,9 +2530,7 @@ function renderEquityBorrow(){
   const rate=(parseFloat(b.assessmentRatePct)||8.5)/100;
   const capacity=amortCapacity(surplus,rate,30);
 
-  w.innerHTML=`<div class="card">
-    <h3 style="margin:0 0 4px;font-size:15px">Usable equity &amp; borrowing capacity</h3>
-    <p class="hint" style="margin:0 0 12px">Planning estimates only — not a bank pre-approval.</p>
+  const body=`<p class="hint" style="margin:0 0 12px">Planning estimates only — not a bank pre-approval.</p>
 
     <label class="fld">Max LVR for equity access (%)</label>
     <input class="txt" type="number" id="eqLvr" value="${lvr}">
@@ -2423,13 +2558,13 @@ function renderEquityBorrow(){
       <div class="stat"><span>Annual surplus available to service new debt</span><span class="v">${AUD(surplus)}</span></div>
       <div class="big"><span class="lbl">Estimated additional borrowing capacity</span><span class="amt pos">${AUD(capacity)}</span></div>
       <p class="hint">30-year loan at the assessment rate above, fully amortising. A broker's real figure will differ.</p>
-    </div>
-  </div>`;
+    </div>`;
+  w.innerHTML=tileShell('equity',body);
 }
 /* SAVINGS GROWTH — are we actually getting ahead, or does topping up
    overspent envelopes keep eating whatever gets saved? */
 function renderSavingsFlow(){
-  const w=document.getElementById('savingsFlowWrap');if(!w)return;
+  const w=document.getElementById('tileslot-savingsflow');if(!w)return;
   const accounts=liveAccounts();
   const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
   const savingsNames=new Set(accounts.filter(a=>bxAccountType(a)==='Savings').map(a=>a.name));
@@ -2447,14 +2582,12 @@ function renderSavingsFlow(){
   const values=byMonth.map(m=>m.net);
   const totalSavings=accounts.filter(a=>bxAccountType(a)==='Savings').reduce((s,a)=>s+(parseFloat(a.balance)||0),0);
 
-  w.innerHTML=`<div class="card">
-    <h3 style="margin:0 0 4px;font-size:15px">Savings growth</h3>
-    <div class="stat"><span>Total Savings</span><span class="v">${AUD(totalSavings)}</span></div>
+  const body=`<div class="stat" style="margin-top:0"><span>Total Savings</span><span class="v">${AUD(totalSavings)}</span></div>
     <div class="stat"><span>Change from last month</span><span class="v" style="color:${thisMonth.net>=0?'var(--good)':'var(--bad)'}">${thisMonth.net>=0?'+':''}${AUD(thisMonth.net)}</span></div>
     ${thisMonth.outflow>0?`<div class="stat"><span>Moved out of Savings this month</span><span class="v" style="color:var(--bad)">-${AUD(thisMonth.outflow)}</span></div>`:''}
     ${signedLineSvg(labels,values)}
-    ${thisMonth.outflow>50?`<p class="hint" style="margin-top:8px;color:#993C1D">Money left Savings this month — worth checking whether that was a planned expense or an envelope top-up eating into growth.</p>`:''}
-  </div>`;
+    ${thisMonth.outflow>50?`<p class="hint" style="margin-top:8px;color:#993C1D">Money left Savings this month — worth checking whether that was a planned expense or an envelope top-up eating into growth.</p>`:''}`;
+  w.innerHTML=tileShell('savingsflow',body);
 }
 function estimateAnnualLiving(transactions){
   if(!transactions||!transactions.length)return 0;
@@ -2539,7 +2672,7 @@ function billBadge(dateStr){
   };
 }
 function renderBills(){
-  const w=document.getElementById('billsWrap');if(!w)return;
+  const w=document.getElementById('tileslot-bills');if(!w)return;
   const accounts=liveAccounts();
   const next30=S.bills.filter(b=>b.active&&daysUntil(b.nextDueDate)<=30).reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
   const sorted=[...S.bills].filter(b=>b.active).sort((a,b)=>new Date(a.nextDueDate)-new Date(b.nextDueDate));
@@ -2555,8 +2688,7 @@ function renderBills(){
     </div>`;
   }).join('');
 
-  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Upcoming bills</h3>
-    <div class="stat"><span>Due in the next 30 days, total</span><span class="v">${AUD(next30)}</span></div>
+  let body=`<div class="stat" style="margin-top:0"><span>Due in the next 30 days, total</span><span class="v">${AUD(next30)}</span></div>
 
     <div class="crewname" style="margin-top:12px">Calendar</div>
     <div id="billCalendar">${calRows||'<p class="hint" style="margin:4px 0">No bills added yet.</p>'}</div>
@@ -2577,9 +2709,8 @@ function renderBills(){
       <input class="txt" id="billDue" type="date" style="flex:1;min-width:110px" value="${todayISO()}">
       <button class="addbtn" style="flex:1;min-width:110px;padding:9px 14px;margin:0" onclick="addBill()">+ Add bill</button>
     </div>
-    <label class="rowck" style="margin-top:8px"><input type="checkbox" id="billRegular" checked> Recurring bill</label>
-  </div>`;
-  w.innerHTML=html;
+    <label class="rowck" style="margin-top:8px"><input type="checkbox" id="billRegular" checked> Recurring bill</label>`;
+  w.innerHTML=tileShell('bills',body);
 
   const list=document.getElementById('billList');
   if(!sorted.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No bills added yet.</p>';return;}
@@ -2676,7 +2807,7 @@ function setBudgetAddType(t){
   document.querySelectorAll('.budgetTypeSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-t')===t));
 }
 function renderEnvelopes(){
-  const w=document.getElementById('envWrap');if(!w)return;
+  const w=document.getElementById('tileslot-budgets');if(!w)return;
   const accounts=liveAccounts();
   const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
   const usedIds=new Set(S.money.envelopes.filter(e=>!e.deleted).map(e=>e.accountId));
@@ -2698,8 +2829,7 @@ function renderEnvelopes(){
   const ceilingCol=ceilingPct>=100?'var(--bad)':ceilingPct>=80?'#D85A30':'var(--good)';
   const overCount=liveCatBudgets.filter(b=>catBudgetSpent(b.accountId,b.tag,transactions)>b.limit).length;
 
-  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Budgets</h3>
-    <p class="hint" style="margin:0 0 10px">Budget a whole account (e.g. Savings) — or, for an account where several bills share one balance (e.g. Essentials covering electricity, water and internet), budget just one category within it, using Buxfer's tags.</p>
+  let body=`<p class="hint" style="margin:0 0 10px">Budget a whole account (e.g. Savings) — or, for an account where several bills share one balance (e.g. Essentials covering electricity, water and internet), budget just one category within it, using Buxfer's tags.</p>
 
     <div class="stat" style="border-top:1px solid var(--line);padding-top:10px"><span>Across all account budgets combined</span><span class="v" style="color:${totalDiff>=0?'var(--good)':'var(--bad)'}">${totalDiff>=0?'+':''}${AUD(totalDiff)}</span></div>
     ${liveCatBudgets.length?`<div class="stat"><span>Category budgets over limit this month</span><span class="v" style="color:${overCount>0?'var(--bad)':'var(--good)'}">${overCount} of ${liveCatBudgets.length}</span></div>`:''}
@@ -2729,9 +2859,8 @@ function renderEnvelopes(){
       <datalist id="catTagOptions"></datalist>
       <input class="txt" id="catBudgetLimit" type="number" placeholder="Monthly limit $" style="width:140px">
       <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addCategoryBudget()">+ Add</button>
-    </div>
-  </div>`;
-  w.innerHTML=html;
+    </div>`;
+  w.innerHTML=tileShell('budgets',body);
   updateCatTagOptions();
 
   const list=document.getElementById('envList');
@@ -2825,15 +2954,22 @@ function renderEnvelopes(){
 // electricity, water and internet all come out of the same account and
 // need their own limits. This tracks a monthly $ limit per (account, tag)
 // pair, spend is pulled live from Buxfer's own tags on real transactions.
+function bxTagCatalogNames(){
+  // Buxfer's full tag/category list (GET /tags), synced independently of
+  // transactions — this is what lets a category show up before it's ever
+  // actually been used on a synced transaction.
+  const tags=bxDemoMode?(BX_DEMO_CACHE.tags||[]):(S.buxfer.cache.tags||[]);
+  return tags.map(t=>t.name).filter(Boolean);
+}
 function tagsForAccount(accountId,transactions){
   const acct=liveAccounts().find(a=>String(a.id)===String(accountId));
   if(!acct)return [];
-  const set=new Set();
+  const set=new Set(bxTagCatalogNames());
   transactions.forEach(t=>{if(t.accountName===acct.name)(t._tags||[]).forEach(tag=>set.add(tag));});
   return Array.from(set).sort();
 }
 function allKnownTags(transactions){
-  const set=new Set();
+  const set=new Set(bxTagCatalogNames());
   transactions.forEach(t=>(t._tags||[]).forEach(tag=>set.add(tag)));
   return Array.from(set).sort();
 }
