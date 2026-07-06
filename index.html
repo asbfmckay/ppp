@@ -350,7 +350,7 @@
   .bx-tx{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px}
   .bx-tx:last-child{border-bottom:none}
   .bx-tx .d{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .bx-tx .m{color:var(--muted);font-size:11px}
+  .bx-tx .m{color:var(--ink);font-size:12px;flex:none;width:76px;text-align:right;font-variant-numeric:tabular-nums}
   .bx-tx .a{font-weight:700;font-variant-numeric:tabular-nums;flex:none}
   .bx-tx .a.pos{color:var(--good)} .bx-tx .a.neg{color:var(--ink)}
   .bx-chat{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--sh)}
@@ -1774,6 +1774,25 @@ function bxSignedAmount(t){
   const inTypes=['income','refund','capital_gain','investment_sell','investment_dividend'];
   if(outTypes.includes(type))return -mag;
   if(inTypes.includes(type))return mag;
+  if(type==='transfer'){
+    // Both sides of a transfer share the same type, so type alone can't
+    // tell us direction — confirmed against real data where "Transfer to
+    // Savings", "Transfer from Savings" and an ATM cash withdrawal (also
+    // type=transfer in Buxfer) all came through with the same unsigned
+    // amount. Buxfer's documented API exposes fromAccountId/toAccountId
+    // for exactly this reason — use those first.
+    const acctId=t.accountId!=null?String(t.accountId):null;
+    if(acctId&&t.toAccountId!=null&&String(t.toAccountId)===acctId)return mag;
+    if(acctId&&t.fromAccountId!=null&&String(t.fromAccountId)===acctId)return -mag;
+    // Those fields weren't present — fall back to Buxfer's own
+    // auto-generated description text, which reliably says "to X" (left
+    // this account), "from X" (arrived), or "withdrawal" (cash out).
+    const desc=(t.description||'').toLowerCase();
+    if(/\bwithdrawal\b/.test(desc))return -mag;
+    if(/\bto\b/.test(desc)&&!/\bfrom\b/.test(desc))return -mag;
+    if(/\bfrom\b/.test(desc)&&!/\bto\b/.test(desc))return mag;
+    return raw; // genuinely no signal to go on — trust whatever Buxfer sent
+  }
   // transfer / settlement / no type at all (e.g. demo data) — trust
   // whatever sign was actually supplied rather than guessing.
   return raw;
@@ -2500,13 +2519,14 @@ function addBill(){
   const name=document.getElementById('billName').value.trim();
   const amount=parseFloat(document.getElementById('billAmount').value)||0;
   const accountId=document.getElementById('billAccount').value;
+  const category=document.getElementById('billCategory').value.trim();
   const method=document.getElementById('billMethod').value;
   const dueDate=document.getElementById('billDue').value||todayISO();
   const regular=document.getElementById('billRegular').checked;
   if(!name||!amount){toast('Add a name and an amount');return;}
-  S.bills.push({id:genId(),name,amount,nextDueDate:dueDate,method,accountId,variable:false,regular,category:'',active:true,updatedAt:Date.now()});
+  S.bills.push({id:genId(),name,amount,nextDueDate:dueDate,method,accountId,variable:false,regular,category,active:true,updatedAt:Date.now()});
   save();renderBills();renderEnvelopes();
-  document.getElementById('billName').value='';document.getElementById('billAmount').value='';
+  document.getElementById('billName').value='';document.getElementById('billAmount').value='';document.getElementById('billCategory').value='';
 }
 function delBill(id){const b=S.bills.find(x=>x.id===id);if(b){b.active=false;b.updatedAt=Date.now();}save();renderBills();renderEnvelopes();}
 function billBadge(dateStr){
@@ -2544,16 +2564,18 @@ function renderBills(){
     <div class="crewname" style="margin-top:14px">Edit</div>
     <div class="acc" id="billList"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <input class="txt" id="billName" placeholder="Bill name" style="flex:1;min-width:120px">
-      <input class="txt" id="billAmount" type="number" placeholder="Amount $" style="width:100px">
+      <input class="txt" id="billName" placeholder="Bill name" style="flex:2;min-width:140px">
+      <input class="txt" id="billAmount" type="number" placeholder="Amount $" style="flex:1;min-width:110px">
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
       <select class="txt" id="billAccount" style="flex:1;min-width:130px">${accountOptions(accounts).replace('— account (optional)','— which account —')}</select>
-      <select class="txt" id="billMethod" style="width:150px"><option value="manual">Pay manually</option><option value="directDebit">Direct debit</option></select>
+      <input class="txt" id="billCategory" list="billCatOptions" placeholder="Category — e.g. Electricity (optional)" style="flex:1;min-width:130px">
+      <datalist id="billCatOptions">${allKnownTags(bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions).map(t=>`<option value="${t}">`).join('')}</datalist>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-      <input class="txt" id="billDue" type="date" style="flex:1;min-width:130px" value="${todayISO()}">
-      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addBill()">+ Add bill</button>
+    <div class="ad-seg3" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <select class="txt" id="billMethod" style="flex:1;min-width:110px"><option value="manual">Pay manually</option><option value="directDebit">Direct debit</option></select>
+      <input class="txt" id="billDue" type="date" style="flex:1;min-width:110px" value="${todayISO()}">
+      <button class="addbtn" style="flex:1;min-width:110px;padding:9px 14px;margin:0" onclick="addBill()">+ Add bill</button>
     </div>
     <label class="rowck" style="margin-top:8px"><input type="checkbox" id="billRegular" checked> Recurring bill</label>
   </div>`;
@@ -2566,7 +2588,7 @@ function renderBills(){
     const acct=accounts.find(a=>String(a.id)===String(b.accountId));
     const {txt,bg,col}=billBadge(b.nextDueDate);
     const item=document.createElement('div');item.className='item'+(openBills.has(b.id)?' open':'');
-    item.innerHTML=`<button class="hd"><span class="n">${b.method==='directDebit'?'⇄':'✍️'}</span><span style="flex:1">${b.name||'Untitled bill'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(b.amount)} · ${acct?acct.name:'no account set'}</small></span><span class="cklct" style="background:${bg};color:${col}">${txt}</span><span class="chev">›</span></button>
+    item.innerHTML=`<button class="hd"><span class="n">${b.method==='directDebit'?'⇄':'✍️'}</span><span style="flex:1">${b.name||'Untitled bill'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(b.amount)} · ${acct?acct.name:'no account set'}${b.category?' · '+b.category:''}</small></span><span class="cklct" style="background:${bg};color:${col}">${txt}</span><span class="chev">›</span></button>
       <div class="bd">
         <div style="display:flex;gap:8px">
           <div style="flex:1"><label class="fld">Name</label><input class="txt bName" value="${b.name}"></div>
@@ -2576,6 +2598,7 @@ function renderBills(){
           <div style="flex:1"><label class="fld">Account</label><select class="txt bAccount">${accountOptions(accounts).replace('— account (optional)','— which account —')}</select></div>
           <div style="width:150px"><label class="fld">How it's paid</label><select class="txt bMethod"><option value="manual">Pay manually</option><option value="directDebit">Direct debit</option></select></div>
         </div>
+        <div style="margin-top:8px"><label class="fld">Category — links to a category budget (optional)</label><input class="txt bCategory" list="billCatOptions" value="${b.category||''}" placeholder="e.g. Electricity"></div>
         <div style="margin-top:8px"><label class="fld">Next due date</label><input class="txt bDue" type="date" value="${b.nextDueDate}"></div>
         <label class="rowck" style="margin-top:8px"><input type="checkbox" class="bVariable"${b.variable?' checked':''}> Amount varies each time (e.g. electricity) — update it before each due date</label>
         <label class="rowck" style="margin-top:6px"><input type="checkbox" class="bRegular"${b.regular?' checked':''}> Recurring bill</label>
@@ -2591,6 +2614,9 @@ function renderBills(){
     bAccount.addEventListener('change',()=>{b.accountId=bAccount.value;b.updatedAt=Date.now();save();renderBills();renderEnvelopes();});
     const bMethod=item.querySelector('.bMethod');bMethod.value=b.method;
     bMethod.addEventListener('change',()=>{b.method=bMethod.value;b.updatedAt=Date.now();save();renderBills();});
+    const bCategory=item.querySelector('.bCategory');
+    bCategory.addEventListener('input',()=>{b.category=bCategory.value.trim();b.updatedAt=Date.now();save();});
+    bCategory.addEventListener('change',()=>renderBills());
     const bDue=item.querySelector('.bDue');bDue.addEventListener('change',()=>{b.nextDueDate=bDue.value||todayISO();b.updatedAt=Date.now();save();renderBills();renderEnvelopes();});
     item.querySelector('.bVariable').addEventListener('change',(e)=>{b.variable=e.target.checked;b.updatedAt=Date.now();save();});
     item.querySelector('.bRegular').addEventListener('change',(e)=>{b.regular=e.target.checked;b.updatedAt=Date.now();save();renderBills();});
@@ -2804,6 +2830,11 @@ function tagsForAccount(accountId,transactions){
   if(!acct)return [];
   const set=new Set();
   transactions.forEach(t=>{if(t.accountName===acct.name)(t._tags||[]).forEach(tag=>set.add(tag));});
+  return Array.from(set).sort();
+}
+function allKnownTags(transactions){
+  const set=new Set();
+  transactions.forEach(t=>(t._tags||[]).forEach(tag=>set.add(tag)));
   return Array.from(set).sort();
 }
 function updateCatTagOptions(){
