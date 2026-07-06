@@ -372,6 +372,14 @@
   .tx-top .tx-amt.pos{color:var(--good)}
   .tx-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--muted)}
   .tx-tag{background:#F1EFEA;color:var(--plum-soft);border-radius:20px;padding:1px 8px;font-weight:600;flex:none}
+  .tx-flexrow{display:flex;align-items:center;gap:7px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px}
+  .tfr-date{flex:none;width:60px;color:var(--ink);font-size:11px;font-variant-numeric:tabular-nums}
+  .tfr-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .tfr-acct{flex:none;max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10.5px}
+  .tfr-tag{flex:none;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#F1EFEA;color:var(--plum-soft);
+    border-radius:20px;padding:1px 7px;font-size:10px;font-weight:600}
+  .tfr-amt{flex:none;font-weight:700;font-variant-numeric:tabular-nums;min-width:58px;text-align:right;color:var(--ink)}
+  .tfr-amt.pos{color:var(--good)}
   .bx-chat{border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--sh)}
   .bx-chat-top{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--plum)}
   .bx-chat-body{padding:12px 14px;max-height:280px;overflow-y:auto}
@@ -424,7 +432,7 @@
     <h1>Household Planner</h1>
     <div class="lock-who">Andrew &amp; Bronnia McKay</div>
     <input type="password" id="lockPass" class="txt" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')tryUnlock()">
-    <button class="lock-btn" onclick="tryUnlock()">Unlock <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <button class="lock-btn" onclick="tryUnlock()">Unlock</button>
     <p id="lockErr" class="lock-err" style="display:none">Incorrect password — try again.</p>
   </div>
 </div>
@@ -1926,18 +1934,31 @@ function bxAlerts(){
   if(!alerts.length)alerts.push({t:'ok',icon:'checkCircle',m:'Everything looks healthy — no issues detected.'});
   return alerts;
 }
-let currentAcctId=null,acctDetailRange='6M';
+let currentAcctId=null,acctDetailRange='6M',acctTxLimit=6;
 function openAcctDetail(acctId){
   currentAcctId=acctId;
   acctDetailRange='6M';
-  document.getElementById('acctDetail').style.display='block';
-  window.scrollTo({top:0});
+  acctTxLimit=6;
+  const overlay=document.getElementById('acctDetail');
+  overlay.style.display='block';
+  overlay.scrollTop=0; // reset the overlay's own scroll, not the main page's
   renderAcctDetail();
 }
 function closeAcctDetail(){
   document.getElementById('acctDetail').style.display='none';
 }
 function setAcctRange(r){acctDetailRange=r;renderAcctDetail();}
+function txRow(t,showAccount){
+  const amt=parseFloat(t.amount)||0,inc=amt>0;
+  const tags=(t._tags||[]).join(', ');
+  return `<div class="tx-flexrow">
+    <span class="tfr-date">${t.date}</span>
+    <span class="tfr-name">${t.description||'—'}</span>
+    ${showAccount?`<span class="tfr-acct">${t.accountName||''}</span>`:''}
+    ${tags?`<span class="tfr-tag">${tags}</span>`:''}
+    <span class="tfr-amt ${inc?'pos':''}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span>
+  </div>`;
+}
 function renderAcctDetail(){
   const {accounts,transactions}=bxDemoMode?BX_DEMO_CACHE:S.buxfer.cache;
   const a=accounts.find(x=>String(x.id)===String(currentAcctId));
@@ -1997,13 +2018,11 @@ function renderAcctDetail(){
 
   html+=`<div class="ad-chartcard"><h4>Inflow vs outflow — last 6 months</h4>${trendBarSvg(monthKeys,monthly)}</div>`;
 
+  const acctTxSorted=[...acctTx].reverse();
+  const acctTxVisible=acctTxSorted.slice(0,acctTxLimit);
   html+=`<div class="ad-chartcard"><h4>Recent transactions</h4>${
-    acctTx.length?[...acctTx].reverse().slice(0,15).map(t=>{
-      const amt=parseFloat(t.amount)||0,inc=amt>0;
-      return `<div class="bx-tx"><span class="d">${t.description||'—'}</span><span class="m">${t.date}</span>
-        <span class="a ${inc?'pos':'neg'}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span></div>`;
-    }).join(''):'<div class="ad-empty">No transactions on this account yet.</div>'
-  }</div>`;
+    acctTx.length?acctTxVisible.map(t=>txRow(t,false)).join(''):'<div class="ad-empty">No transactions on this account yet.</div>'
+  }${acctTxSorted.length>acctTxLimit?`<button class="ministep" onclick="acctTxLimit+=10;renderAcctDetail()">Show ${Math.min(10,acctTxSorted.length-acctTxLimit)} more (${acctTxSorted.length-acctTxLimit} left)</button>`:''}</div>`;
 
   document.getElementById('adBody').innerHTML=html;
 }
@@ -2270,6 +2289,7 @@ function renderCashflowTile(transactions){
   }
   slot.innerHTML=tileShell('cashflow',body);
 }
+let txTileLimit=6;
 function renderTransactionsTile(){
   const slot=document.getElementById('tileslot-transactions');if(!slot)return;
   const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
@@ -2278,22 +2298,17 @@ function renderTransactionsTile(){
   const from=fromEl?fromEl.value:todayISO(new Date(Date.now()-1000*60*60*24*90));
   const to=toEl?toEl.value:todayISO();
   const rows=[...transactions].filter(t=>t.date>=from&&t.date<=to).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const visible=rows.slice(0,txTileLimit);
 
-  const listHtml=rows.length?rows.map(t=>{
-    const amt=parseFloat(t.amount)||0,inc=amt>0;
-    const tags=(t._tags||[]).join(', ');
-    return `<div class="tx-row">
-      <div class="tx-top"><span class="tx-desc">${t.description||'—'}</span><span class="tx-amt ${inc?'pos':''}">${inc?'+':'-'}${AUD2(Math.abs(amt))}</span></div>
-      <div class="tx-bottom"><span>${t.date}${t.accountName?' · '+t.accountName:''}</span>${tags?`<span class="tx-tag">${tags}</span>`:''}</div>
-    </div>`;
-  }).join(''):'<p class="hint" style="margin:8px 0">No transactions in this date range.</p>';
+  const listHtml=rows.length?visible.map(t=>txRow(t,true)).join(''):'<p class="hint" style="margin:8px 0">No transactions in this date range.</p>';
+  const moreHtml=rows.length>txTileLimit?`<button class="ministep" onclick="txTileLimit+=10;renderTransactionsTile()">Show ${Math.min(10,rows.length-txTileLimit)} more (${rows.length-txTileLimit} left)</button>`:'';
 
   const body=`<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">From</label><input class="txt" type="date" id="txFrom" value="${from}" onchange="renderTransactionsTile()"></div>
-      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">To</label><input class="txt" type="date" id="txTo" value="${to}" onchange="renderTransactionsTile()"></div>
+      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">From</label><input class="txt" type="date" id="txFrom" value="${from}" onchange="txTileLimit=6;renderTransactionsTile()"></div>
+      <div style="flex:1;min-width:120px"><label class="hint" style="margin:0 0 4px">To</label><input class="txt" type="date" id="txTo" value="${to}" onchange="txTileLimit=6;renderTransactionsTile()"></div>
     </div>
     <p class="hint" style="margin:0 0 8px">${rows.length} transaction${rows.length===1?'':'s'}</p>
-    <div id="txList">${listHtml}</div>`;
+    <div id="txList">${listHtml}</div>${moreHtml}`;
   slot.innerHTML=tileShell('transactions',body);
 }
 function renderGoalsTile(accounts){
