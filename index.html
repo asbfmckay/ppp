@@ -1795,7 +1795,7 @@ async function syncBuxfer(silent){
     const base=workerBase(c.url);
     const [ar,tr,br]=await Promise.all([
       fetch(base+'/accounts',{headers:bxHeaders()}),
-      fetch(base+'/transactions?since='+todayISO(new Date(Date.now()-1000*60*60*24*180)),{headers:bxHeaders()}),
+      fetch(base+'/transactions?since='+todayISO(new Date(Date.now()-1000*60*60*24*400)),{headers:bxHeaders()}),
       fetch(base+'/budgets',{headers:bxHeaders()})
     ]);
     if(!ar.ok)throw new Error('accounts: '+await readErrorDetail(ar));
@@ -2241,12 +2241,12 @@ function daysSinceValuation(p){
 function addProperty(){
   const p={id:genId(),name:'',address:'',linkedAccountId:'',manualValue:0,growthRatePct:5,
     linkedLoanIds:[],manualLoanBalance:0,valuations:[],updatedAt:Date.now()};
-  S.properties.push(p);openProps.add(p.id);save();renderProperties();renderEquityBorrow();
+  S.properties.push(p);openProps.add(p.id);save();renderProperties();renderEquityBorrow();renderBuxfer();
 }
 function delProperty(id){
   if(!confirm('Remove this property? Its valuation history goes with it.'))return;
   const p=S.properties.find(x=>x.id===id);if(p){p.deleted=true;p.updatedAt=Date.now();}
-  save();renderProperties();renderEquityBorrow();
+  save();renderProperties();renderEquityBorrow();renderBuxfer();
 }
 function renderProperties(){
   const w=document.getElementById('propWrap');if(!w)return;
@@ -2304,13 +2304,13 @@ function renderProperties(){
     const manualValRow=item.querySelector(`#manualValRow_${p.id}`);
     const manualVal=item.querySelector('.manualVal');manualVal.value=p.manualValue||'';
     manualValRow.style.display=p.linkedAccountId?'none':'block';
-    linkAcct.addEventListener('change',()=>{p.linkedAccountId=linkAcct.value;manualValRow.style.display=p.linkedAccountId?'none':'block';p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();});
+    linkAcct.addEventListener('change',()=>{p.linkedAccountId=linkAcct.value;manualValRow.style.display=p.linkedAccountId?'none':'block';p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();renderBuxfer();});
     manualVal.addEventListener('input',()=>{p.manualValue=parseFloat(manualVal.value)||0;p.updatedAt=Date.now();save();});
-    manualVal.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
+    manualVal.addEventListener('change',()=>{renderProperties();renderEquityBorrow();renderBuxfer();});
 
     const growth=item.querySelector('.growth');growth.value=p.growthRatePct;
     growth.addEventListener('input',()=>{p.growthRatePct=parseFloat(growth.value)||0;p.updatedAt=Date.now();save();});
-    growth.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
+    growth.addEventListener('change',()=>{renderProperties();renderEquityBorrow();renderBuxfer();});
 
     p.linkedLoanIds=p.linkedLoanIds||[];
     item.querySelectorAll('.loanCk').forEach(ck=>{
@@ -2318,12 +2318,12 @@ function renderProperties(){
         const id=ck.value;
         if(ck.checked){if(!p.linkedLoanIds.includes(id))p.linkedLoanIds.push(id);}
         else{p.linkedLoanIds=p.linkedLoanIds.filter(x=>x!==id);}
-        p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();
+        p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();renderBuxfer();
       });
     });
     const manualLoan=item.querySelector('.manualLoan');manualLoan.value=p.manualLoanBalance||'';
     manualLoan.addEventListener('input',()=>{p.manualLoanBalance=parseFloat(manualLoan.value)||0;p.updatedAt=Date.now();save();});
-    manualLoan.addEventListener('change',()=>{renderProperties();renderEquityBorrow();});
+    manualLoan.addEventListener('change',()=>{renderProperties();renderEquityBorrow();renderBuxfer();});
 
     const valList=item.querySelector('.valList');
     if(!p.valuations.length)valList.innerHTML='<p class="hint" style="margin:4px 0">No valuations logged yet — the manual/linked value above is used as-is.</p>';
@@ -2332,7 +2332,7 @@ function renderProperties(){
       row.innerHTML=`<span style="flex:none;width:90px;font-size:12px;color:var(--muted)">${v.date}</span>
         <span style="flex:1;font-size:13px">${AUD(v.value)}${v.source?' · '+v.source:''}</span>
         <button class="del">×</button>`;
-      row.querySelector('.del').onclick=()=>{p.valuations=p.valuations.filter(x=>x.id!==v.id);p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();};
+      row.querySelector('.del').onclick=()=>{p.valuations=p.valuations.filter(x=>x.id!==v.id);p.updatedAt=Date.now();save();renderProperties();renderEquityBorrow();renderBuxfer();};
       valList.appendChild(row);
     });
 
@@ -2343,7 +2343,7 @@ function renderProperties(){
       if(!amt){toast('Enter a value first');return;}
       p.valuations.push({id:genId(),date:d,value:amt,source:src});
       p.updatedAt=Date.now();
-      save();renderProperties();renderEquityBorrow();
+      save();renderProperties();renderEquityBorrow();renderBuxfer();
     };
     item.querySelector('.del').onclick=()=>delProperty(p.id);
     list.appendChild(item);
@@ -2467,7 +2467,7 @@ function saveBorrowAssumptions(){
   S.money.borrow.livingExpenses=livingRaw===''?'':parseFloat(livingRaw)||0;
   S.money.borrow.otherLiabilityRepay=parseFloat(document.getElementById('bwOther').value)||0;
   S.money.borrow.assessmentRatePct=parseFloat(document.getElementById('bwRate').value)||8.5;
-  save();renderProperties();renderEquityBorrow();
+  save();renderProperties();renderEquityBorrow();renderBuxfer();
   toast('Recalculated');
 }
 
