@@ -1812,6 +1812,13 @@ async function syncBuxfer(silent){
 
 function bxAccountType(a){
   const t=(a.type||'').toLowerCase(),n=(a.name||'').toLowerCase(),bal=parseFloat(a.balance)||0;
+  // Ground truth first: if this Buxfer account is explicitly linked from
+  // Property Portfolio, trust that over any name/type guessing — that's
+  // the only way to reliably catch an account named e.g. "34 Treetop Tce"
+  // which contains no property-ish keyword at all.
+  const liveProps=(S.properties||[]).filter(p=>!p.deleted);
+  if(liveProps.some(p=>p.linkedAccountId&&String(p.linkedAccountId)===String(a.id)))return 'Property';
+  if(liveProps.some(p=>(p.linkedLoanIds||[]).map(String).includes(String(a.id))))return 'Loans & credit';
   if(t.includes('asset')||t.includes('propert')||t.includes('real estate')||n.includes('propert')||n.includes('house')||n.includes('real estate'))return 'Property';
   if(bal<0&&(t.includes('loan')||t.includes('mortgage')||t.includes('credit')||n.includes('loan')||n.includes('mortgage')))return 'Loans & credit';
   if(n.includes('super')||t.includes('super'))return 'Superannuation';
@@ -1906,10 +1913,15 @@ function renderAcctDetail(){
   const monthKeys=Object.keys(monthly).sort().slice(-6);
 
   let html=`<div class="ad-stats">
-    <div class="ad-stat"><div class="l">Balance</div><div class="v" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></div>
+    <div class="ad-stat"><div class="l">Balance (raw, from Buxfer)</div><div class="v" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></div>
     <div class="ad-stat"><div class="l">In this month</div><div class="v" style="color:var(--good)">+${AUD(inflow)}</div></div>
     <div class="ad-stat"><div class="l">Out this month</div><div class="v" style="color:var(--bad)">-${AUD(outflow)}</div></div>
   </div>`;
+  const linkedProp=S.properties.filter(p=>!p.deleted).find(p=>String(p.linkedAccountId)===String(a.id));
+  if(linkedProp){
+    const trackedVal=propertyCurrentValue(linkedProp,accounts).value;
+    html+=`<p class="hint" style="margin:-4px 0 10px">This account is linked to <b>${linkedProp.name||'a property'}</b> in Property Portfolio. The raw Buxfer balance above is just what's set on the Buxfer account itself — the figure used everywhere else in this app (dashboard tile, net worth, equity) is Property Portfolio's tracked value: <b>${AUD(trackedVal)}</b>. Update the value in Property Portfolio, not here.</p>`;
+  }
 
   html+=`<div class="ad-chartcard"><h4>Balance</h4>
     <div class="ad-seg">
@@ -2050,8 +2062,22 @@ function renderBuxfer(){
     demoBanner=`<div class="bx-alert info" style="align-items:center"><span style="flex:1"><b>Demo data</b> — this is a preview, not your real Buxfer account. Nothing here is saved.</span>
       <button class="syncbtn" style="padding:6px 12px;font-size:12px" onclick="exitBxDemo()">Exit demo</button></div>`;
   }
-  const assets=accounts.filter(a=>(parseFloat(a.balance)||0)>0).reduce((s,a)=>s+parseFloat(a.balance),0);
-  const liab=accounts.filter(a=>(parseFloat(a.balance)||0)<0).reduce((s,a)=>s+Math.abs(parseFloat(a.balance)),0);
+  const liveProps=S.properties.filter(p=>!p.deleted);
+  const propByAccountId={};
+  liveProps.forEach(p=>{if(p.linkedAccountId)propByAccountId[String(p.linkedAccountId)]=p;});
+  // A property's tracked VALUE (asset side, from Property Portfolio — manual
+  // entry or logged valuations + growth) is intentionally kept separate from
+  // its LOAN balance (liability side, from linkedLoanIds elsewhere) — paying
+  // down a mortgage from another account reduces the loan balance shown in
+  // Property Portfolio, but never changes this tracked value, which only
+  // moves via a logged valuation or the growth-rate projection.
+  function bxEffectiveBalance(a){
+    const prop=propByAccountId[String(a.id)];
+    if(prop)return propertyCurrentValue(prop,accounts).value;
+    return parseFloat(a.balance)||0;
+  }
+  const assets=accounts.filter(a=>bxEffectiveBalance(a)>0).reduce((s,a)=>s+bxEffectiveBalance(a),0);
+  const liab=accounts.filter(a=>bxEffectiveBalance(a)<0).reduce((s,a)=>s+Math.abs(bxEffectiveBalance(a)),0);
   const nw=assets-liab;
 
   let html=demoBanner+`<div class="bx-status"><span class="dot"></span>Connected · ${accounts.length} accounts
@@ -2072,8 +2098,9 @@ function renderBuxfer(){
   order.filter(g=>groups[g]&&groups[g].length).forEach(g=>{
     html+=`<div class="bx-groupname"><span style="margin-right:5px;display:inline-flex;vertical-align:-3px">${icon(bxGroupIcon(g),13)}</span>${g}</div><div class="bx-acctgrid">`;
     groups[g].forEach(a=>{
-      const bal=parseFloat(a.balance)||0;
-      html+=`<button type="button" class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${a.type||g}</div></div>
+      const bal=bxEffectiveBalance(a);
+      const isProp=!!propByAccountId[String(a.id)];
+      html+=`<button type="button" class="bx-acct" onclick="openAcctDetail('${a.id}')"><div class="acct-top"><div class="bx-acct-icon">${icon(bxGroupIcon(g),13)}</div><div class="t">${isProp?'Property · from Portfolio':(a.type||g)}</div></div>
         <div class="n">${a.name}</div><div class="b" style="color:${bal>=0?'var(--ink)':'var(--bad)'}">${AUD(bal)}</div></button>`;
     });
     html+='</div>';
@@ -2082,7 +2109,6 @@ function renderBuxfer(){
 
   // Envelope budgets — tracked per Buxfer account, limits set here in PPP, not read from Buxfer
   html+='<div id="envWrap"></div>';
-  html+='<div id="catBudgetWrap"></div>';
   html+='<div id="billsWrap"></div>';
   html+='<div id="savingsFlowWrap"></div>';
 
@@ -2134,7 +2160,6 @@ function renderBuxfer(){
   renderEquityBorrow();
   renderBills();
   renderEnvelopes();
-  renderCategoryBudgets();
   renderSavingsFlow();
   renderBxChat();
 }
@@ -2610,12 +2635,22 @@ function saveCeiling(){
   save();renderEnvelopes();
   toast('Saved');
 }
+let budgetAddType='account';
+function setBudgetAddType(t){
+  budgetAddType=t;
+  const accRow=document.getElementById('budgetAddAccountRow');
+  const catRow=document.getElementById('budgetAddCategoryRow');
+  if(accRow)accRow.style.display=t==='account'?'flex':'none';
+  if(catRow)catRow.style.display=t==='category'?'flex':'none';
+  document.querySelectorAll('.budgetTypeSeg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-t')===t));
+}
 function renderEnvelopes(){
   const w=document.getElementById('envWrap');if(!w)return;
   const accounts=liveAccounts();
   const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
   const usedIds=new Set(S.money.envelopes.filter(e=>!e.deleted).map(e=>e.accountId));
   const available=accounts.filter(a=>!usedIds.has(String(a.id)));
+  const liveCatBudgets=S.money.categoryBudgets.filter(b=>!b.deleted);
 
   // Overall rollup — the single "in total, within our means?" number, plus an
   // optional household-wide ceiling that doesn't care how spend is split
@@ -2630,10 +2665,13 @@ function renderEnvelopes(){
   const ceiling=S.money.spendCeiling||0;
   const ceilingPct=ceiling>0?Math.min(100,Math.round(totalSpentThisMonth/ceiling*100)):0;
   const ceilingCol=ceilingPct>=100?'var(--bad)':ceilingPct>=80?'#D85A30':'var(--good)';
+  const overCount=liveCatBudgets.filter(b=>catBudgetSpent(b.accountId,b.tag,transactions)>b.limit).length;
 
   let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Budgets</h3>
+    <p class="hint" style="margin:0 0 10px">Budget a whole account (e.g. Savings) — or, for an account where several bills share one balance (e.g. Essentials covering electricity, water and internet), budget just one category within it, using Buxfer's tags.</p>
 
-    <div class="stat" style="border-top:1px solid var(--line);padding-top:10px"><span>Across all budgets combined</span><span class="v" style="color:${totalDiff>=0?'var(--good)':'var(--bad)'}">${totalDiff>=0?'+':''}${AUD(totalDiff)}</span></div>
+    <div class="stat" style="border-top:1px solid var(--line);padding-top:10px"><span>Across all account budgets combined</span><span class="v" style="color:${totalDiff>=0?'var(--good)':'var(--bad)'}">${totalDiff>=0?'+':''}${AUD(totalDiff)}</span></div>
+    ${liveCatBudgets.length?`<div class="stat"><span>Category budgets over limit this month</span><span class="v" style="color:${overCount>0?'var(--bad)':'var(--good)'}">${overCount} of ${liveCatBudgets.length}</span></div>`:''}
 
     <label class="fld">Total everyday spending ceiling (per month, all accounts combined)</label>
     <div style="display:flex;gap:8px;align-items:center">
@@ -2642,18 +2680,32 @@ function renderEnvelopes(){
     </div>
     ${ceiling>0?`<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span>Spent this month across Everyday accounts</span><span style="font-weight:700;color:${ceilingCol}">${AUD(totalSpentThisMonth)} / ${AUD(ceiling)}</span></div><div class="ovbar" style="height:6px"><i style="width:${ceilingPct}%;background:${ceilingCol}"></i></div></div>`:''}
 
-    <div class="acc" id="envList" style="margin-top:14px"></div>`;
-  html+=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-    <select class="txt" id="envAccount" style="flex:1;min-width:140px">${accountOptions(available).replace('— account (optional)','— choose account —')}</select>
-    <input class="txt" id="envAlloc" type="number" placeholder="Amount $" style="width:120px">
-    <select class="txt" id="envPeriod" style="width:130px">${PERIOD_OPTS.map(p=>`<option value="${p.d}"${p.d===14?' selected':''}>${p.l}</option>`).join('')}</select>
-    <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addEnvelope()">+ Add</button>
-  </div></div>`;
+    <div class="acc" id="envList" style="margin-top:14px"></div>
+
+    <div class="ad-seg budgetTypeSeg" style="margin-top:14px">
+      <button type="button" data-t="account" class="${budgetAddType==='account'?'on':''}" onclick="setBudgetAddType('account')">Bank account</button>
+      <button type="button" data-t="category" class="${budgetAddType==='category'?'on':''}" onclick="setBudgetAddType('category')">Category</button>
+    </div>
+    <div id="budgetAddAccountRow" style="display:${budgetAddType==='account'?'flex':'none'};gap:8px;flex-wrap:wrap">
+      <select class="txt" id="envAccount" style="flex:1;min-width:140px">${accountOptions(available).replace('— account (optional)','— choose account —')}</select>
+      <input class="txt" id="envAlloc" type="number" placeholder="Amount $" style="width:120px">
+      <select class="txt" id="envPeriod" style="width:130px">${PERIOD_OPTS.map(p=>`<option value="${p.d}"${p.d===14?' selected':''}>${p.l}</option>`).join('')}</select>
+      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addEnvelope()">+ Add</button>
+    </div>
+    <div id="budgetAddCategoryRow" style="display:${budgetAddType==='category'?'flex':'none'};gap:8px;flex-wrap:wrap">
+      <select class="txt" id="catBudgetAccount" style="flex:1;min-width:140px" onchange="updateCatTagOptions()">${accountOptions(accounts).replace('— account (optional)','— choose account —')}</select>
+      <input class="txt" id="catBudgetTag" list="catTagOptions" placeholder="Category — e.g. Electricity" style="flex:1;min-width:140px">
+      <datalist id="catTagOptions"></datalist>
+      <input class="txt" id="catBudgetLimit" type="number" placeholder="Monthly limit $" style="width:140px">
+      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addCategoryBudget()">+ Add</button>
+    </div>
+  </div>`;
   w.innerHTML=html;
+  updateCatTagOptions();
 
   const list=document.getElementById('envList');
   const liveEnvs=S.money.envelopes.filter(e=>!e.deleted);
-  if(!liveEnvs.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No budgets set yet.</p>';return;}
+  if(!liveEnvs.length&&!liveCatBudgets.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No budgets set yet.</p>';return;}
 
   liveEnvs.forEach(e=>{
     const {acct,currentBalance,diff,nextResetDate}=envelopeStatus(e,accounts,transactions);
@@ -2665,7 +2717,7 @@ function renderEnvelopes(){
     const upcomingTotal=upcoming.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
     const realistic=currentBalance-upcomingTotal;
     const item=document.createElement('div');item.className='item'+(openEnvs.has(e.id)?' open':'');
-    item.innerHTML=`<button class="hd"><span class="n">✉️</span><span style="flex:1">${acct?acct.name:e.label||'(account removed)'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(currentBalance)} balance</small></span><span class="cklct" style="background:${badgeBg};color:${badgeCol}">${statusTxt}</span><span class="chev">›</span></button>
+    item.innerHTML=`<button class="hd"><span class="n">✉️</span><span style="flex:1">${acct?acct.name:e.label||'(account removed)'}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${AUD(currentBalance)} balance · account</small></span><span class="cklct" style="background:${badgeBg};color:${badgeCol}">${statusTxt}</span><span class="chev">›</span></button>
       <div class="bd">
         <div class="stat"><span>Current balance</span><span class="v">${AUD(currentBalance)}</span></div>
         <div class="stat"><span>Balance when tracking started (${e.anchorDate})</span><span class="v">${AUD(e.anchorBalance)}</span></div>
@@ -2712,6 +2764,28 @@ function renderEnvelopes(){
 
     list.appendChild(item);
   });
+
+  // Category budgets — same accordion look, same list, so it reads as one
+  // "Budgets" section rather than a second, competing feature.
+  liveCatBudgets.forEach(b=>{
+    const acct=accounts.find(a=>String(a.id)===String(b.accountId));
+    const spent=catBudgetSpent(b.accountId,b.tag,transactions);
+    const over=spent>b.limit;
+    const pct=b.limit>0?Math.min(100,Math.round(spent/b.limit*100)):0;
+    const barCol=over?'var(--bad)':pct>=80?'#D85A30':'var(--good)';
+    const key='cat_'+b.id;
+    const item=document.createElement('div');item.className='item'+(openEnvs.has(key)?' open':'');
+    item.innerHTML=`<button class="hd"><span class="n">🏷️</span><span style="flex:1">${b.tag}<br><small style="font-weight:400;color:var(--muted);font-size:11.5px">${acct?acct.name:'(account removed)'} · category</small></span><span class="cklct" style="background:${over?'#FAECE7':'#EAF3E4'};color:${over?'#993C1D':'#2f6b47'}">${over?AUD(spent-b.limit)+' over':AUD(b.limit-spent)+' left'}</span><span class="chev">›</span></button>
+      <div class="bd">
+        <div class="stat"><span>Spent this month</span><span class="v">${AUD(spent)}</span></div>
+        <div class="stat"><span>Monthly limit</span><span class="v">${AUD(b.limit)}</span></div>
+        <div class="ovbar" style="height:6px;margin:8px 0"><i style="width:${pct}%;background:${barCol}"></i></div>
+        <button class="del" style="margin-top:10px;color:var(--bad);font-size:12px;font-weight:600" onclick="delCategoryBudget('${b.id}')">Remove budget</button>
+      </div>`;
+    item.querySelector('.hd').onclick=()=>{item.classList.toggle('open');
+      if(item.classList.contains('open'))openEnvs.add(key);else openEnvs.delete(key);};
+    list.appendChild(item);
+  });
 }
 
 // ─── Category budgets — budgeting by Buxfer tag within an account ────────
@@ -2748,49 +2822,12 @@ function addCategoryBudget(){
   const limit=parseFloat(document.getElementById('catBudgetLimit').value)||0;
   if(!accountId||!tag||!limit){toast('Pick an account, a category, and a monthly limit');return;}
   S.money.categoryBudgets.push({id:genId(),accountId,tag,limit,updatedAt:Date.now()});
-  save();renderCategoryBudgets();
+  save();renderEnvelopes();
 }
 function delCategoryBudget(id){
   const b=S.money.categoryBudgets.find(x=>x.id===id);
   if(b){b.deleted=true;b.updatedAt=Date.now();}
-  save();renderCategoryBudgets();
-}
-function renderCategoryBudgets(){
-  const w=document.getElementById('catBudgetWrap');if(!w)return;
-  const accounts=liveAccounts();
-  const transactions=bxDemoMode?BX_DEMO_CACHE.transactions:S.buxfer.cache.transactions;
-  const live=S.money.categoryBudgets.filter(b=>!b.deleted);
-
-  let html=`<div class="card"><h3 style="margin:0 0 4px;font-size:15px">Category budgets</h3>
-    <p class="hint" style="margin:0 0 12px">For accounts where several bills share one account — e.g. Essentials covering electricity, water and internet — budget by Buxfer tag instead of the account's total balance.</p>
-    <div id="catBudgetList"></div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <select class="txt" id="catBudgetAccount" style="flex:1;min-width:140px" onchange="updateCatTagOptions()">${accountOptions(accounts).replace('— account (optional)','— choose account —')}</select>
-      <input class="txt" id="catBudgetTag" list="catTagOptions" placeholder="Category — e.g. Electricity" style="flex:1;min-width:140px">
-      <datalist id="catTagOptions"></datalist>
-      <input class="txt" id="catBudgetLimit" type="number" placeholder="Monthly limit $" style="width:140px">
-      <button class="addbtn" style="width:auto;padding:9px 14px;margin:0" onclick="addCategoryBudget()">+ Add</button>
-    </div></div>`;
-  w.innerHTML=html;
-  updateCatTagOptions();
-
-  const list=document.getElementById('catBudgetList');
-  if(!live.length){list.innerHTML='<p class="hint" style="margin:0 0 10px">No category budgets set yet. Tag your transactions in Buxfer first — categories will show up in the dropdown below once an account is picked.</p>';return;}
-  list.innerHTML=live.map(b=>{
-    const acct=accounts.find(a=>String(a.id)===String(b.accountId));
-    const spent=catBudgetSpent(b.accountId,b.tag,transactions);
-    const over=spent>b.limit;
-    const pct=b.limit>0?Math.min(100,Math.round(spent/b.limit*100)):0;
-    const barCol=over?'var(--bad)':pct>=80?'#D85A30':'var(--good)';
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
-        <span><b>${b.tag}</b> · ${acct?acct.name:'(account removed)'}</span>
-        <span style="font-weight:700;color:${over?'var(--bad)':'var(--ink)'}">${AUD(spent)} / ${AUD(b.limit)}</span>
-      </div>
-      <div class="ovbar" style="height:6px;margin-bottom:6px"><i style="width:${pct}%;background:${barCol}"></i></div>
-      <button class="del" style="color:var(--bad);font-size:11.5px;font-weight:600" onclick="delCategoryBudget('${b.id}')">Remove</button>
-    </div>`;
-  }).join('');
+  save();renderEnvelopes();
 }
 
 async function askBuxfer(){
